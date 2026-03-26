@@ -65,7 +65,6 @@ async function createWindow() {
     minHeight: 720,
     center: true,
     show: true,
-    titleBarStyle: 'hiddenInset',
     backgroundColor: '#eadfcd',
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.mjs'),
@@ -107,15 +106,31 @@ async function createWindow() {
 async function refreshShortcuts() {
   globalShortcut.unregisterAll();
   const settings = await getSettings();
+  const failedShortcuts: string[] = [];
 
-  globalShortcut.register(settings.shortcut.reopen, () => {
+  const reopenRegistered = globalShortcut.register(settings.shortcut.reopen, () => {
     showWindow();
     void mainWindow?.webContents.send('shortcut:reopen');
   });
+  if (!reopenRegistered) {
+    failedShortcuts.push(`再表示: ${settings.shortcut.reopen}`);
+  }
 
-  globalShortcut.register(settings.shortcut.proofread, () => {
+  const proofreadRegistered = globalShortcut.register(settings.shortcut.proofread, () => {
     void handleGlobalProofread();
   });
+  if (!proofreadRegistered) {
+    failedShortcuts.push(`校正: ${settings.shortcut.proofread}`);
+  }
+
+  if (failedShortcuts.length) {
+    const message = `ショートカットを登録できませんでした。他のアプリと競合している可能性があります。${failedShortcuts.join(' / ')}`;
+    console.warn(message);
+    void mainWindow?.webContents.send('proofread:status', {
+      kind: 'error',
+      message
+    });
+  }
 }
 
 function createTray() {
@@ -159,13 +174,12 @@ async function handleGlobalProofread() {
       return;
     }
 
+    showWindow();
     void mainWindow?.webContents.send('proofread:captured', {
       source: selectedText
     });
 
     const result = await proofreadText(selectedText, settings);
-
-    showWindow();
 
     const historyItem: ProofreadHistoryItem = {
       id: randomUUID(),
