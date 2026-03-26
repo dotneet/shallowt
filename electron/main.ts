@@ -1,0 +1,259 @@
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen } from 'electron';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { getActiveRules } from './rules';
+import { getSettings, getHistory, pushHistory, saveSettings } from './store';
+import { pasteText, readSelectedText } from './selection';
+import { proofreadText } from './proofread';
+import type { AppSettings, ProofreadHistoryItem } from './types';
+
+let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let isQuiting = false;
+
+const isMac = process.platform === 'darwin';
+const isDev = !app.isPackaged;
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
+function getIcon() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+      <rect width="18" height="18" rx="5" fill="#2A1B10"/>
+      <path d="M5 13V5h2.2v3.2L10.4 5H13l-3.3 3.8L13 13h-2.7L7.8 9.8 7.2 10.5V13H5z" fill="#F8F2E9"/>
+    </svg>
+  `.trim();
+  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  icon.setTemplateImage(true);
+  return icon;
+}
+
+function showWindow() {
+  if (!mainWindow) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  const workArea = screen.getPrimaryDisplay().workArea;
+  const bounds = mainWindow.getBounds();
+  const nextX = Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - bounds.width);
+  const nextY = Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - bounds.height);
+
+  mainWindow.setBounds({
+    ...bounds,
+    x: Number.isFinite(nextX) ? nextX : workArea.x + 40,
+    y: Number.isFinite(nextY) ? nextY : workArea.y + 40
+  });
+  mainWindow.center();
+  mainWindow.show();
+  mainWindow.moveTop();
+  mainWindow.focus();
+  app.focus({ steal: true });
+}
+
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1520,
+    height: 960,
+    minWidth: 1180,
+    minHeight: 720,
+    center: true,
+    show: true,
+    titleBarStyle: 'hiddenInset',
+    backgroundColor: '#eadfcd',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/preload.mjs'),
+      sandbox: false
+    }
+  });
+
+  mainWindow.on('close', (event) => {
+    if (!isQuiting) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error('did-fail-load', { errorCode, errorDescription, validatedURL });
+  });
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('render-process-gone', details);
+  });
+  mainWindow.once('ready-to-show', () => {
+    showWindow();
+  });
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    console.log('load renderer url', process.env.ELECTRON_RENDERER_URL);
+    await mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+  } else {
+    console.log('load renderer file', path.join(__dirname, '../renderer/index.html'));
+    await mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
+
+  if (!mainWindow.isVisible()) {
+    showWindow();
+  }
+}
+
+async function refreshShortcuts() {
+  globalShortcut.unregisterAll();
+  const settings = await getSettings();
+
+  globalShortcut.register(settings.shortcut.reopen, () => {
+    showWindow();
+    void mainWindow?.webContents.send('shortcut:reopen');
+  });
+
+  globalShortcut.register(settings.shortcut.proofread, () => {
+    void handleGlobalProofread();
+  });
+}
+
+function createTray() {
+  tray = new Tray(getIcon());
+  tray.setToolTip('Kousei');
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'ウィンドウを開く',
+      click: () => showWindow()
+    },
+    {
+      label: '選択テキストを校正',
+      click: () => void handleGlobalProofread()
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: '終了',
+      click: () => {
+        isQuiting = true;
+        app.quit();
+      }
+    }
+  ]);
+  tray.setContextMenu(menu);
+  tray.on('click', showWindow);
+}
+
+async function handleGlobalProofread() {
+  try {
+    const settings = await getSettings();
+    const selectedText = await readSelectedText();
+
+    if (!selectedText) {
+      showWindow();
+      void mainWindow?.webContents.send('proofread:status', {
+        kind: 'error',
+        message: '選択テキストを取得できませんでした。macOSのアクセシビリティ許可を確認してください。'
+      });
+      return;
+    }
+
+    void mainWindow?.webContents.send('proofread:captured', {
+      source: selectedText
+    });
+
+    const result = await proofreadText(selectedText, settings);
+
+    showWindow();
+
+    const historyItem: ProofreadHistoryItem = {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      source: selectedText,
+      output: result.output,
+      modelName: result.modelName,
+      rulesApplied: getActiveRules(settings),
+      verification: result.verification
+    };
+
+    const history = await pushHistory(historyItem);
+
+    void mainWindow?.webContents.send('proofread:completed', {
+      ...result,
+      source: selectedText,
+      history
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '不明なエラーが発生しました。';
+    showWindow();
+    void mainWindow?.webContents.send('proofread:status', {
+      kind: 'error',
+      message
+    });
+  }
+}
+
+function registerIpcHandlers() {
+  ipcMain.handle('settings:get', async () => getSettings());
+  ipcMain.handle('settings:save', async (_, settings: AppSettings) => {
+    const saved = await saveSettings(settings);
+    await refreshShortcuts();
+    return saved;
+  });
+  ipcMain.handle('history:list', async () => getHistory());
+  ipcMain.handle('proofread:run', async (_, source: string, incomingSettings?: AppSettings) => {
+    const settings = (incomingSettings?.ruleSets?.length && incomingSettings?.models?.length)
+      ? incomingSettings
+      : await getSettings();
+    const result = await proofreadText(source, settings);
+    const historyItem: ProofreadHistoryItem = {
+      id: randomUUID(),
+      createdAt: new Date().toISOString(),
+      source,
+      output: result.output,
+      modelName: result.modelName,
+      rulesApplied: getActiveRules(settings),
+      verification: result.verification
+    };
+    const history = await pushHistory(historyItem);
+    return {
+      ...result,
+      history
+    };
+  });
+  ipcMain.handle('selection:proofread', async () => {
+    await handleGlobalProofread();
+  });
+  ipcMain.handle('selection:paste-result', async (_, text: string) => {
+    await pasteText(text);
+  });
+}
+
+app.whenReady().then(async () => {
+  if (isMac && app.dock) {
+    app.setActivationPolicy('regular');
+    app.dock.show();
+  }
+
+  registerIpcHandlers();
+  await createWindow();
+  createTray();
+  await refreshShortcuts();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      void createWindow();
+      return;
+    }
+    showWindow();
+  });
+});
+
+app.on('second-instance', () => {
+  showWindow();
+});
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});
