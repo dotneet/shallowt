@@ -498,112 +498,110 @@ export function App() {
       </section>
 
       {/* ルールセットダイアログ */}
-      <dialog ref={ruleSetDialogRef} className="kDialog">
+      <dialog ref={ruleSetDialogRef} className="kDialog kDialog--wide">
         <div className="dialogHeader">
           <h2>ルールセット</h2>
           <button className="dialogClose" onClick={() => ruleSetDialogRef.current?.close()}>✕</button>
         </div>
-        <div className="dialogBody" style={{ flexDirection: 'row', gap: 0, padding: 0, overflow: 'hidden' }}>
-          {/* 左カラム：一覧 */}
-          <div className="ruleSetSidebar">
-            <div className="ruleSetSidebarHeader">
-              <span>一覧</span>
-              <button className="linkButton" onClick={() => { setDraftRuleSet({ ...emptyRuleSet }); setDraftRuleText(''); }}>
-                + 新規
-              </button>
-            </div>
-            <div className="ruleSetList">
-              {currentSettings.ruleSets.map((ruleSet) => {
-                const isActive = currentSettings.activeRuleSetIds.includes(ruleSet.id);
-                const isEditing = draftRuleSet.id === ruleSet.id;
-                return (
-                  <button
-                    key={ruleSet.id}
-                    className={`ruleSetListItem${isEditing ? ' editing' : ''}`}
-                    onClick={() => {
-                      setDraftRuleSet(ruleSet);
-                      setDraftRuleText(ruleSet.rules.join('\n'));
-                    }}
-                  >
-                    <span className={`ruleSetActiveIndicator${isActive ? ' active' : ''}`} title={isActive ? '使用中' : '未使用'} />
-                    <span className="ruleSetListItemName">{ruleSet.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 右カラム：編集フォーム */}
-          <div className="ruleSetEditor">
-            <div className="ruleSetEditorInner">
-              {/* ステータス行 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 28 }}>
-                <p className="ruleSetEditorHint" style={{ flex: 1, margin: 0 }}>
-                  {draftRuleSet.id
-                    ? currentSettings.activeRuleSetIds.includes(draftRuleSet.id)
-                      ? '校正で使用中'
-                      : '未使用'
-                    : '新規作成'}
-                </p>
-                {draftRuleSet.id && (
-                  <button
-                    className="linkButton"
-                    onClick={() => void toggleRuleSet(draftRuleSet.id, !currentSettings.activeRuleSetIds.includes(draftRuleSet.id))}
-                  >
-                    {currentSettings.activeRuleSetIds.includes(draftRuleSet.id) ? '使用を外す' : '校正に使用する'}
-                  </button>
-                )}
-              </div>
-
-              {/* 編集フォーム */}
-              <label className="field" style={{ marginTop: 0 }}>
-                <span>ルールセット名</span>
-                <input
-                  value={draftRuleSet.name}
-                  onChange={(e) => setDraftRuleSet({ ...draftRuleSet, name: e.target.value })}
-                  placeholder="例: プレスリリース調整"
-                />
-              </label>
-              <label className="field" style={{ marginTop: 0 }}>
-                <span>ルール（1行1件）</span>
-                <textarea
-                  className="rules"
-                  value={draftRuleText}
-                  onChange={(e) => setDraftRuleText(e.target.value)}
-                  placeholder="自然で読みやすい日本語を優先する&#10;冗長な表現は簡潔にする"
-                />
-              </label>
-            </div>
-            <div className="ruleSetEditorFooter">
-              {ruleSetSaved && <span className="ruleSetSavedNote">保存しました</span>}
-              <div style={{ flex: 1 }} />
-              {draftRuleSet.id && (
-                <button
-                  onClick={() => void deleteDraftRuleSet()}
-                  disabled={busy || currentSettings.ruleSets.length === 1}
-                >
-                  削除
+        <div className="dialogBody dialogBody--flush">
+          <div className="twoColumnLayout">
+            {/* 左カラム：一覧 */}
+            <div className="ruleSetSidebar">
+              <div className="ruleSetSidebarHeader">
+                <span>一覧</span>
+                <button className="linkButton" onClick={() => { setDraftRuleSet({ ...emptyRuleSet }); setDraftRuleText(''); }}>
+                  + 新規
                 </button>
-              )}
-              <button
-                className={`accent${ruleSetSaved ? ' saved' : ''}`}
-                onClick={() => void saveDraftRuleSet()}
-                disabled={busy || ruleSetSaved}
-              >
-                {ruleSetSaved ? '保存済み' : draftRuleSet.id ? '保存' : '作成'}
-              </button>
+              </div>
+              <div className="ruleSetList">
+                {currentSettings.ruleSets.map((ruleSet) => {
+                  const isActive = currentSettings.activeRuleSetIds.includes(ruleSet.id);
+                  const isEditing = draftRuleSet.id === ruleSet.id;
+                  return (
+                    <button
+                      key={ruleSet.id}
+                      className={`ruleSetListItem${isEditing ? ' editing' : ''}`}
+                      onClick={() => {
+                        setDraftRuleSet(ruleSet);
+                        setDraftRuleText(ruleSet.rules.join('\n'));
+                      }}
+                    >
+                      <span className={`ruleSetActiveIndicator${isActive ? ' active' : ''}`} title={isActive ? '使用中' : '未使用'} />
+                      <span className="ruleSetListItemName">{ruleSet.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 右カラム：編集フォーム */}
+            <div className="ruleSetEditor">
+              <div className="ruleSetEditorInner">
+                <div className="dialogStatusRow">
+                  <p className="ruleSetEditorHint dialogStatusText">
+                    {draftRuleSet.id
+                      ? currentSettings.activeRuleSetIds.includes(draftRuleSet.id)
+                        ? '校正で使用中'
+                        : '未使用'
+                      : '新規作成'}
+                  </p>
+                  {draftRuleSet.id && (
+                    <button
+                      className="linkButton"
+                      onClick={() => void toggleRuleSet(draftRuleSet.id, !currentSettings.activeRuleSetIds.includes(draftRuleSet.id))}
+                    >
+                      {currentSettings.activeRuleSetIds.includes(draftRuleSet.id) ? '使用を外す' : '校正に使用する'}
+                    </button>
+                  )}
+                </div>
+                <label className="field" style={{ marginTop: 0 }}>
+                  <span>ルールセット名</span>
+                  <input
+                    value={draftRuleSet.name}
+                    onChange={(e) => setDraftRuleSet({ ...draftRuleSet, name: e.target.value })}
+                    placeholder="例: プレスリリース調整"
+                  />
+                </label>
+                <label className="field" style={{ marginTop: 0 }}>
+                  <span>ルール（1行1件）</span>
+                  <textarea
+                    className="rules"
+                    value={draftRuleText}
+                    onChange={(e) => setDraftRuleText(e.target.value)}
+                    placeholder="自然で読みやすい日本語を優先する&#10;冗長な表現は簡潔にする"
+                  />
+                </label>
+              </div>
             </div>
           </div>
+        </div>
+        <div className="dialogFooter">
+          <p className="dialogFooterNote">保存すると次回の校正から反映されます。</p>
+          {ruleSetSaved && <span className="ruleSetSavedNote">保存しました</span>}
+          <div style={{ flex: 1 }} />
+          {draftRuleSet.id && (
+            <button onClick={() => void deleteDraftRuleSet()} disabled={busy || currentSettings.ruleSets.length === 1}>
+              削除
+            </button>
+          )}
+          <button
+            className={`accent${ruleSetSaved ? ' saved' : ''}`}
+            onClick={() => void saveDraftRuleSet()}
+            disabled={busy || ruleSetSaved}
+          >
+            {ruleSetSaved ? '保存済み' : draftRuleSet.id ? '保存' : '作成'}
+          </button>
         </div>
       </dialog>
 
       {/* モデル設定ダイアログ */}
-      <dialog ref={modelDialogRef} className="kDialog">
+      <dialog ref={modelDialogRef} className="kDialog kDialog--wide">
         <div className="dialogHeader">
           <h2>モデル設定</h2>
           <button className="dialogClose" onClick={() => modelDialogRef.current?.close()}>✕</button>
         </div>
-        <div className="dialogBody" style={{ flexDirection: 'row', gap: 0, padding: 0, overflow: 'hidden' }}>
+        <div className="dialogBody dialogBody--flush">
+          <div className="twoColumnLayout">
           {/* 左カラム：モデル一覧 */}
           <div className="ruleSetSidebar">
             <div className="ruleSetSidebarHeader">
@@ -640,8 +638,8 @@ export function App() {
           <div className="ruleSetEditor">
             <div className="ruleSetEditorInner">
               {/* 使用状況 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 28 }}>
-                <p className="ruleSetEditorHint" style={{ flex: 1, margin: 0 }}>
+              <div className="dialogStatusRow">
+                <p className="ruleSetEditorHint dialogStatusText">
                   {draftModel.id === currentSettings.activeModelId
                     ? '現在の校正で使用中'
                     : currentSettings.models.some((m) => m.id === draftModel.id)
@@ -658,48 +656,52 @@ export function App() {
               {/* 組み込みモデル：読み取り専用表示 */}
               {draftModel.builtin ? (
                 <>
-                  <div className="modelInfoGrid">
-                    <span className="modelInfoLabel">Provider</span>
-                    <span>{draftModel.provider === 'openai-compatible' ? 'OpenAI compatible' : draftModel.provider === 'anthropic' ? 'Anthropic' : 'Ollama'}</span>
-                    <span className="modelInfoLabel">Model ID</span>
-                    <span>{draftModel.model}</span>
-                    <span className="modelInfoLabel">Endpoint</span>
-                    <span className="modelInfoEndpoint">{draftModel.endpoint}</span>
+                  <div className="dialogCard dialogCard--muted">
+                    <div className="modelInfoGrid">
+                      <span className="modelInfoLabel">Provider</span>
+                      <span>{draftModel.provider === 'openai-compatible' ? 'OpenAI compatible' : draftModel.provider === 'anthropic' ? 'Anthropic' : 'Ollama'}</span>
+                      <span className="modelInfoLabel">Model ID</span>
+                      <span>{draftModel.model}</span>
+                      <span className="modelInfoLabel">Endpoint</span>
+                      <span className="modelInfoEndpoint">{draftModel.endpoint}</span>
+                    </div>
+                    <p className="ruleSetEditorHint">組み込みモデルは変更できません。「複製」で独自設定を追加できます。</p>
                   </div>
-                  <p className="ruleSetEditorHint">組み込みモデルは変更できません。「複製」で独自設定を追加できます。</p>
                 </>
               ) : (
                 /* ユーザー追加モデル：編集フォーム */
-                <div className="fieldGrid">
-                  <label className="field full">
-                    <span>表示名</span>
-                    <input value={draftModel.name} onChange={(e) => setDraftModel({ ...draftModel, name: e.target.value })} placeholder="例: GPT-4o カスタム" />
-                  </label>
-                  <label className="field">
-                    <span>Provider</span>
-                    <select value={draftModel.provider} onChange={(e) => setDraftModel({ ...draftModel, provider: e.target.value as ModelProfile['provider'] })}>
-                      <option value="openai-compatible">OpenAI compatible</option>
-                      <option value="anthropic">Anthropic</option>
-                      <option value="ollama">Ollama</option>
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Model ID</span>
-                    <input value={draftModel.model} onChange={(e) => setDraftModel({ ...draftModel, model: e.target.value })} placeholder="例: gpt-4o" />
-                  </label>
-                  <label className="field full">
-                    <span>Endpoint</span>
-                    <input value={draftModel.endpoint} onChange={(e) => setDraftModel({ ...draftModel, endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
-                  </label>
-                  <label className="field full">
-                    <span>API キー（このモデル専用・任意）</span>
-                    <input
-                      type="password"
-                      placeholder="未入力の場合はプロバイダー共通キーを使用"
-                      value={draftModel.apiKey ?? ''}
-                      onChange={(e) => setDraftModel({ ...draftModel, apiKey: e.target.value })}
-                    />
-                  </label>
+                <div className="dialogCard">
+                  <div className="fieldGrid modelFieldGrid">
+                    <label className="field full">
+                      <span>表示名</span>
+                      <input value={draftModel.name} onChange={(e) => setDraftModel({ ...draftModel, name: e.target.value })} placeholder="例: GPT-4o カスタム" />
+                    </label>
+                    <label className="field">
+                      <span>Provider</span>
+                      <select value={draftModel.provider} onChange={(e) => setDraftModel({ ...draftModel, provider: e.target.value as ModelProfile['provider'] })}>
+                        <option value="openai-compatible">OpenAI compatible</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="ollama">Ollama</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Model ID</span>
+                      <input value={draftModel.model} onChange={(e) => setDraftModel({ ...draftModel, model: e.target.value })} placeholder="例: gpt-4o" />
+                    </label>
+                    <label className="field full">
+                      <span>Endpoint</span>
+                      <input value={draftModel.endpoint} onChange={(e) => setDraftModel({ ...draftModel, endpoint: e.target.value })} placeholder="https://api.openai.com/v1/chat/completions" />
+                    </label>
+                    <label className="field full">
+                      <span>API キー（このモデル専用・任意）</span>
+                      <input
+                        type="password"
+                        placeholder="未入力の場合はプロバイダー共通キーを使用"
+                        value={draftModel.apiKey ?? ''}
+                        onChange={(e) => setDraftModel({ ...draftModel, apiKey: e.target.value })}
+                      />
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -710,39 +712,41 @@ export function App() {
               )}
             </div>
 
-            <div className="ruleSetEditorFooter">
-              <button onClick={() => {
-                const { builtin: _builtin, ...rest } = draftModel;
-                const nextModel: ModelProfile = { ...rest, id: `${draftModel.id || 'model'}-copy-${Date.now()}`, name: `${draftModel.name} (コピー)` };
-                setSettings({ ...currentSettings, models: [...currentSettings.models, nextModel] });
-                setDraftModel(nextModel);
-              }}>
-                複製
-              </button>
-              {!draftModel.builtin && currentSettings.models.some((m) => m.id === draftModel.id) && (
-                <button onClick={() => void deleteDraftModel()} disabled={busy}>
-                  削除
-                </button>
-              )}
-              <div style={{ flex: 1 }} />
-              {!draftModel.builtin && (
-                <button
-                  className="accent"
-                  disabled={busy || !draftModel.name || !draftModel.model}
-                  onClick={() => {
-                    void saveCurrentSettings({
-                      ...currentSettings,
-                      models: currentSettings.models.some((m) => m.id === draftModel.id)
-                        ? currentSettings.models.map((m) => (m.id === draftModel.id ? draftModel : m))
-                        : [...currentSettings.models, draftModel]
-                    });
-                  }}
-                >
-                  保存
-                </button>
-              )}
-            </div>
           </div>
+          </div>
+        </div>
+        <div className="dialogFooter">
+          <p className="dialogFooterNote">組み込みモデルは複製してから編集します。</p>
+          <button onClick={() => {
+            const { builtin: _builtin, ...rest } = draftModel;
+            const nextModel: ModelProfile = { ...rest, id: `${draftModel.id || 'model'}-copy-${Date.now()}`, name: `${draftModel.name} (コピー)` };
+            setSettings({ ...currentSettings, models: [...currentSettings.models, nextModel] });
+            setDraftModel(nextModel);
+          }}>
+            複製
+          </button>
+          {!draftModel.builtin && currentSettings.models.some((m) => m.id === draftModel.id) && (
+            <button onClick={() => void deleteDraftModel()} disabled={busy}>
+              削除
+            </button>
+          )}
+          <div style={{ flex: 1 }} />
+          {!draftModel.builtin && (
+            <button
+              className="accent"
+              disabled={busy || !draftModel.name || !draftModel.model}
+              onClick={() => {
+                void saveCurrentSettings({
+                  ...currentSettings,
+                  models: currentSettings.models.some((m) => m.id === draftModel.id)
+                    ? currentSettings.models.map((m) => (m.id === draftModel.id ? draftModel : m))
+                    : [...currentSettings.models, draftModel]
+                });
+              }}
+            >
+              保存
+            </button>
+          )}
         </div>
       </dialog>
 
