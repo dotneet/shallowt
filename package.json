@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "build": {
-    "appId": "jp.shinji.shallowtwrite",
+    "appId": "net.devneko.shallowtwrite",
     "productName": "ShallowT Write",
     "files": [
       "out/**",
