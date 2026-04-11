@@ -21,15 +21,22 @@ if (!hasSingleInstanceLock) {
 }
 
 function getIcon() {
-  const svg = `
+  const iconPath = path.join(__dirname, '../../assets/pen.png');
+  const icon = nativeImage.createFromPath(iconPath);
+
+  if (!icon.isEmpty()) {
+    return icon.resize({ width: 18, height: 18 });
+  }
+
+  const fallbackSvg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
       <rect width="18" height="18" rx="5" fill="#2A1B10"/>
       <path d="M5 13V5h2.2v3.2L10.4 5H13l-3.3 3.8L13 13h-2.7L7.8 9.8 7.2 10.5V13H5z" fill="#F8F2E9"/>
     </svg>
   `.trim();
-  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
-  icon.setTemplateImage(true);
-  return icon;
+  return nativeImage
+    .createFromDataURL(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`)
+    .resize({ width: 18, height: 18 });
 }
 
 function showWindow() {
@@ -258,8 +265,8 @@ function registerIpcHandlers() {
 
 app.whenReady().then(async () => {
   if (isMac && app.dock) {
-    app.setActivationPolicy('regular');
-    app.dock.show();
+    app.setActivationPolicy('accessory');
+    app.dock.hide();
   }
 
   registerIpcHandlers();

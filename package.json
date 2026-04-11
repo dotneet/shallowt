@@ -15,13 +15,18 @@
     "appId": "jp.shinji.shallowtwrite",
     "productName": "ShallowT Write",
     "files": [
-      "out/**"
+      "out/**",
+      "assets/**"
     ],
     "directories": {
       "buildResources": "build"
     },
     "mac": {
       "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "extendInfo": {
+        "LSUIElement": true
+      },
       "target": [
         "dmg",
         "zip"
