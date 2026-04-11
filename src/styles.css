@@ -1,19 +1,29 @@
 :root {
   color-scheme: light;
-  --bg: #eadfcd;
-  --paper: rgba(252, 247, 239, 0.86);
-  --paper-strong: rgba(255, 251, 246, 0.95);
-  --line: rgba(71, 52, 36, 0.14);
-  --ink: #27170d;
-  --muted: #7d5a42;
-  --accent: #8e3b2e;
-  --accent-soft: #d66946;
-  --changed: rgba(229, 168, 72, 0.22);
-  --added: rgba(74, 143, 104, 0.18);
-  --deleted: rgba(159, 87, 70, 0.14);
-  --warning: #b36a22;
-  --issue: #9d3f32;
-  --shadow: 0 24px 80px rgba(71, 52, 36, 0.15);
+  --bg: #dbe1de;
+  --bg-deep: #c5cfcb;
+  --bg-warm: #f3eee6;
+  --paper: rgba(250, 247, 242, 0.84);
+  --paper-strong: rgba(255, 252, 248, 0.95);
+  --surface: rgba(253, 250, 246, 0.82);
+  --surface-strong: rgba(255, 252, 248, 0.94);
+  --line: rgba(37, 58, 60, 0.14);
+  --line-soft: rgba(37, 58, 60, 0.08);
+  --line-bright: rgba(255, 255, 255, 0.48);
+  --ink: #1f272b;
+  --muted: #5c6b71;
+  --accent: #8e3d49;
+  --accent-soft: #c76b73;
+  --accent-mist: rgba(142, 61, 73, 0.1);
+  --brand: #457976;
+  --brand-strong: #315f60;
+  --brand-mist: rgba(69, 121, 118, 0.12);
+  --changed: rgba(191, 140, 79, 0.24);
+  --added: rgba(69, 121, 118, 0.18);
+  --deleted: rgba(142, 61, 73, 0.14);
+  --warning: #ab722d;
+  --issue: #92404b;
+  --shadow: 0 24px 80px rgba(37, 58, 60, 0.14);
   font-family: "Avenir Next", "Hiragino Mincho ProN", "Yu Mincho", serif;
 }
 
@@ -26,9 +36,10 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 28%),
-    radial-gradient(circle at right 10% bottom 15%, rgba(214, 105, 70, 0.18), transparent 24%),
-    linear-gradient(135deg, #f6eee1 0%, #e2d1bd 48%, #d3c2b1 100%);
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.74), transparent 26%),
+    radial-gradient(circle at right 12% bottom 14%, rgba(199, 107, 115, 0.16), transparent 24%),
+    radial-gradient(circle at left 18% bottom 18%, rgba(69, 121, 118, 0.12), transparent 28%),
+    linear-gradient(135deg, var(--bg-warm) 0%, var(--bg) 52%, var(--bg-deep) 100%);
 }
 
 body::before {
@@ -37,8 +48,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(124, 92, 67, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(124, 92, 67, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(69, 121, 118, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(69, 121, 118, 0.05) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.65), transparent);
 }
@@ -71,7 +82,7 @@ button {
 
 button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 22px rgba(71, 52, 36, 0.12);
+  box-shadow: 0 12px 22px rgba(37, 58, 60, 0.12);
 }
 
 button:disabled {
@@ -82,8 +93,8 @@ button:disabled {
 }
 
 button.accent {
-  background: linear-gradient(135deg, #8e3b2e, #d66946);
-  color: #fffaf2;
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+  color: #fffaf7;
   border-color: transparent;
 }
 
@@ -114,7 +125,7 @@ button.accent {
 .pane {
   backdrop-filter: blur(20px);
   background: var(--paper);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--line-bright);
   box-shadow: var(--shadow);
 }
 
@@ -122,40 +133,50 @@ button.accent {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.58rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-bright);
+  background: rgba(255, 252, 248, 0.52);
+  box-shadow: 0 12px 26px rgba(37, 58, 60, 0.08);
+  backdrop-filter: blur(12px);
 }
 
 .statusDot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: #9f7a60;
-  box-shadow: 0 0 0 5px rgba(159, 122, 96, 0.14);
+  background: #8b8379;
+  box-shadow: 0 0 0 5px rgba(139, 131, 121, 0.16);
 }
 
 .statusDot.running {
-  background: #c17a22;
-  box-shadow: 0 0 0 5px rgba(193, 122, 34, 0.15);
+  background: var(--warning);
+  box-shadow: 0 0 0 5px rgba(171, 114, 45, 0.16);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 5px rgba(193, 122, 34, 0.15); }
-  50% { box-shadow: 0 0 0 9px rgba(193, 122, 34, 0.0); }
+  0%, 100% { box-shadow: 0 0 0 5px rgba(171, 114, 45, 0.16); }
+  50% { box-shadow: 0 0 0 9px rgba(171, 114, 45, 0); }
 }
 
 .statusDot.attention {
-  background: #a33d2b;
-  box-shadow: 0 0 0 5px rgba(163, 61, 43, 0.12);
+  background: var(--issue);
+  box-shadow: 0 0 0 5px rgba(146, 64, 75, 0.12);
 }
 
 .statusDot.clear {
-  background: #417958;
-  box-shadow: 0 0 0 5px rgba(65, 121, 88, 0.12);
+  background: var(--brand);
+  box-shadow: 0 0 0 5px rgba(69, 121, 118, 0.14);
 }
 
 .subtle {
   color: var(--muted);
   font-size: 0.92rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .chip {
@@ -163,7 +184,7 @@ button.accent {
   align-items: center;
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: rgba(142, 59, 46, 0.1);
+  background: var(--accent-mist);
   color: var(--accent);
   font-size: 0.78rem;
 }
@@ -216,15 +237,15 @@ button.accent {
   border-radius: 999px;
   font-size: 0.78rem;
   color: var(--muted);
-  background: rgba(255, 251, 246, 0.9);
+  background: rgba(255, 252, 248, 0.9);
   border-color: var(--line);
   backdrop-filter: blur(8px);
 }
 
 .copyButton.copied {
-  color: #417958;
-  background: rgba(65, 121, 88, 0.08);
-  border-color: rgba(65, 121, 88, 0.25);
+  color: var(--brand-strong);
+  background: var(--brand-mist);
+  border-color: rgba(69, 121, 118, 0.26);
 }
 
 .paneHeader h2,
@@ -273,7 +294,7 @@ button.accent {
   margin-top: 14px;
   border-radius: 22px;
   border: 1px solid var(--line);
-  background: rgba(255, 252, 247, 0.8);
+  background: var(--surface);
   padding: 16px;
 }
 
@@ -298,7 +319,7 @@ button.accent {
   padding: 22px;
   border: 1px solid var(--line);
   background:
-    linear-gradient(180deg, rgba(255, 250, 243, 0.94), rgba(247, 239, 228, 0.96));
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(241, 246, 244, 0.96));
   font-size: 1.125rem;
   line-height: 1.85;
   white-space: pre-wrap;
@@ -311,14 +332,14 @@ button.accent {
 
 .diff-added {
   text-decoration: underline;
-  text-decoration-color: rgba(74, 143, 104, 0.75);
+  text-decoration-color: rgba(69, 121, 118, 0.75);
   text-underline-offset: 3px;
   text-decoration-thickness: 2px;
 }
 
 .diff-replaced {
   text-decoration: underline;
-  text-decoration-color: rgba(193, 122, 34, 0.7);
+  text-decoration-color: rgba(171, 114, 45, 0.72);
   text-underline-offset: 3px;
   text-decoration-thickness: 2px;
   cursor: help;
@@ -335,13 +356,13 @@ button.accent {
   max-width: 320px;
   padding: 0.75rem 0.85rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(33, 22, 16, 0.95);
-  color: #fff7ef;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  background: rgba(27, 35, 39, 0.96);
+  color: #fffaf7;
   font-size: 0.8rem;
   line-height: 1.5;
   white-space: pre-wrap;
-  box-shadow: 0 18px 38px rgba(33, 22, 16, 0.28);
+  box-shadow: 0 18px 38px rgba(27, 35, 39, 0.28);
   pointer-events: none;
 }
 
@@ -356,8 +377,8 @@ button.accent {
 .verificationItem {
   border-radius: 18px;
   padding: 14px;
-  background: rgba(255, 251, 247, 0.94);
-  border: 1px solid rgba(71, 52, 36, 0.1);
+  background: var(--surface-strong);
+  border: 1px solid var(--line-soft);
 }
 
 .verification-warning {
@@ -379,7 +400,7 @@ button.accent {
 
 .verificationItem blockquote {
   padding-left: 0.9rem;
-  border-left: 2px solid rgba(71, 52, 36, 0.18);
+  border-left: 2px solid rgba(37, 58, 60, 0.18);
   color: var(--muted);
 }
 
@@ -398,14 +419,14 @@ button.accent {
 .apiKeyStatus {
   font-size: 0.8rem;
   color: var(--muted);
-  background: rgba(71, 52, 36, 0.07);
+  background: rgba(37, 58, 60, 0.07);
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
 }
 
 .apiKeyStatus.set {
-  color: #417958;
-  background: rgba(65, 121, 88, 0.1);
+  color: var(--brand-strong);
+  background: var(--brand-mist);
 }
 
 .apiKeyDialogDesc,
@@ -418,16 +439,16 @@ button.accent {
 
 .dialogIntro {
   padding: 14px 16px;
-  border: 1px solid rgba(71, 52, 36, 0.08);
+  border: 1px solid var(--line-soft);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 252, 247, 0.86), rgba(250, 242, 232, 0.78));
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.88), rgba(240, 245, 243, 0.8));
 }
 
 .apiKeyProviderGroup {
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 16px;
-  background: rgba(255, 252, 247, 0.7);
+  background: rgba(255, 252, 248, 0.72);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -474,7 +495,7 @@ button.accent {
   margin-left: 8px;
   font-size: 0.75rem;
   color: var(--muted);
-  background: rgba(71, 52, 36, 0.07);
+  background: rgba(37, 58, 60, 0.07);
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
 }
@@ -508,7 +529,7 @@ button.accent {
 .shortcutRecorderNotice {
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: rgba(255, 252, 247, 0.82);
+  background: var(--surface);
 }
 
 .shortcutRecorderCard {
@@ -518,9 +539,9 @@ button.accent {
 }
 
 .shortcutRecorderCard.recording {
-  border-color: rgba(214, 105, 70, 0.42);
-  box-shadow: 0 14px 28px rgba(142, 59, 46, 0.12);
-  background: linear-gradient(180deg, rgba(255, 247, 240, 0.96), rgba(250, 242, 233, 0.9));
+  border-color: rgba(199, 107, 115, 0.36);
+  box-shadow: 0 14px 28px rgba(142, 61, 73, 0.12);
+  background: linear-gradient(180deg, rgba(255, 248, 248, 0.96), rgba(246, 241, 239, 0.9));
 }
 
 .shortcutRecorderHeader {
@@ -539,21 +560,21 @@ button.accent {
   flex-shrink: 0;
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  background: rgba(71, 52, 36, 0.07);
+  background: rgba(37, 58, 60, 0.07);
   color: var(--muted);
   font-size: 0.75rem;
 }
 
 .shortcutRecorderBadge.recording {
-  background: rgba(214, 105, 70, 0.16);
+  background: rgba(199, 107, 115, 0.16);
   color: var(--accent);
 }
 
 .shortcutRecorderValue {
   border-radius: 16px;
   padding: 13px 14px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(71, 52, 36, 0.08);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line-soft);
   display: grid;
   gap: 4px;
 }
@@ -586,17 +607,17 @@ button.accent {
 
 .shortcutRecorderNotice {
   padding: 12px 14px;
-  color: #417958;
-  background: rgba(65, 121, 88, 0.09);
-  border-color: rgba(65, 121, 88, 0.18);
+  color: var(--brand-strong);
+  background: var(--brand-mist);
+  border-color: rgba(69, 121, 118, 0.18);
   font-size: 0.83rem;
   line-height: 1.55;
 }
 
 .shortcutRecorderNotice.error {
   color: var(--issue);
-  background: rgba(157, 63, 50, 0.09);
-  border-color: rgba(157, 63, 50, 0.18);
+  background: rgba(146, 64, 75, 0.09);
+  border-color: rgba(146, 64, 75, 0.18);
 }
 
 .shortcutRecorderFooter {
@@ -643,7 +664,7 @@ button.accent {
   overflow: hidden;
   flex: 1;
   min-height: 0;
-  background: rgba(255, 251, 246, 0.82);
+  background: rgba(255, 252, 248, 0.84);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
@@ -655,7 +676,7 @@ button.accent {
   flex-direction: column;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(247, 238, 228, 0.9), rgba(242, 231, 219, 0.72));
+    linear-gradient(180deg, rgba(238, 245, 243, 0.92), rgba(230, 238, 236, 0.76));
 }
 
 .ruleSetSidebarHeader {
@@ -699,15 +720,15 @@ button.accent {
 }
 
 .ruleSetListItem:hover {
-  background: rgba(142, 59, 46, 0.08);
-  border-color: rgba(142, 59, 46, 0.1);
+  background: rgba(69, 121, 118, 0.08);
+  border-color: rgba(69, 121, 118, 0.12);
   transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(71, 52, 36, 0.08);
+  box-shadow: 0 8px 18px rgba(37, 58, 60, 0.08);
 }
 
 .ruleSetListItem.editing {
-  background: linear-gradient(180deg, rgba(142, 59, 46, 0.14), rgba(142, 59, 46, 0.08));
-  border-color: rgba(142, 59, 46, 0.22);
+  background: linear-gradient(180deg, rgba(142, 61, 73, 0.14), rgba(142, 61, 73, 0.08));
+  border-color: rgba(142, 61, 73, 0.22);
 }
 
 .ruleSetListItemName {
@@ -721,12 +742,12 @@ button.accent {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: rgba(71, 52, 36, 0.2);
+  background: rgba(37, 58, 60, 0.22);
   flex-shrink: 0;
 }
 
 .ruleSetActiveIndicator.active {
-  background: #417958;
+  background: var(--brand);
 }
 
 .ruleSetEditor {
@@ -734,7 +755,7 @@ button.accent {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 252, 247, 0.94), rgba(249, 242, 233, 0.9));
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.95), rgba(241, 246, 244, 0.92));
 }
 
 .ruleSetEditorInner {
@@ -765,15 +786,15 @@ button.accent {
 }
 
 .dialogCard {
-  border: 1px solid rgba(71, 52, 36, 0.1);
+  border: 1px solid var(--line-soft);
   border-radius: 20px;
   padding: 16px;
-  background: rgba(255, 252, 247, 0.76);
+  background: rgba(255, 252, 248, 0.78);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .dialogCard--muted {
-  background: linear-gradient(180deg, rgba(247, 238, 228, 0.92), rgba(241, 230, 219, 0.75));
+  background: linear-gradient(180deg, rgba(238, 245, 243, 0.94), rgba(230, 238, 236, 0.78));
 }
 
 .dialogCard .ruleSetEditorHint {
@@ -791,25 +812,25 @@ button.accent {
 
 .ruleSetSavedNote {
   font-size: 0.82rem;
-  color: #417958;
+  color: var(--brand-strong);
   white-space: nowrap;
 }
 
 button.accent.saved {
-  background: linear-gradient(135deg, #417958, #5a9e72);
+  background: linear-gradient(135deg, var(--brand-strong), #5f9693);
 }
 
 .ruleSetItem {
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 14px;
-  background: rgba(255, 251, 247, 0.94);
+  background: var(--surface-strong);
   cursor: pointer;
 }
 
 .ruleSetItem.selected {
-  border-color: rgba(142, 59, 46, 0.38);
-  box-shadow: inset 0 0 0 1px rgba(142, 59, 46, 0.14);
+  border-color: rgba(142, 61, 73, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(142, 61, 73, 0.14);
 }
 
 .ruleSetMeta {
@@ -876,7 +897,7 @@ button.accent.saved {
   text-align: left;
   border-radius: 18px;
   padding: 14px;
-  background: rgba(255, 251, 247, 0.94);
+  background: var(--surface-strong);
 }
 
 .historyItem strong,
@@ -930,7 +951,7 @@ button.accent.saved {
   align-items: center;
   justify-content: space-between;
   text-align: left;
-  background: rgba(255, 252, 247, 0.78);
+  background: rgba(255, 252, 248, 0.78);
 }
 
 .historyTrigger strong,
@@ -955,7 +976,7 @@ button.accent.saved {
 .shortcutSummaryItem {
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: rgba(255, 252, 247, 0.72);
+  background: rgba(255, 252, 248, 0.74);
 }
 
 .shortcutSummaryItem {
@@ -982,12 +1003,12 @@ button.accent.saved {
   border-radius: 999px;
   font-size: 0.78rem;
   color: var(--accent);
-  background: rgba(142, 59, 46, 0.08);
+  background: var(--accent-mist);
   border-color: transparent;
 }
 
 .linkButton:hover {
-  background: rgba(142, 59, 46, 0.14);
+  background: rgba(142, 61, 73, 0.14);
 }
 
 /* ダイアログ */
@@ -998,11 +1019,11 @@ button.accent.saved {
   width: min(640px, 92vw);
   height: min(520px, 82vh);
   max-height: 82vh;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--line-bright);
   border-radius: 28px;
   padding: 0;
   background: var(--paper-strong);
-  box-shadow: 0 32px 80px rgba(33, 22, 16, 0.28);
+  box-shadow: 0 32px 80px rgba(27, 35, 39, 0.24);
   overflow: hidden;
 }
 
@@ -1029,7 +1050,7 @@ button.accent.saved {
 }
 
 .kDialog::backdrop {
-  background: rgba(33, 22, 16, 0.35);
+  background: rgba(27, 35, 39, 0.34);
   backdrop-filter: blur(4px);
 }
 
@@ -1040,7 +1061,7 @@ button.accent.saved {
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(248, 239, 229, 0.88));
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(238, 245, 243, 0.9));
 }
 
 .dialogHeader h2 {
@@ -1064,7 +1085,7 @@ button.accent.saved {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(245, 236, 226, 0.92));
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(240, 245, 243, 0.93));
 }
 
 .dialogBody--flush {
@@ -1092,7 +1113,7 @@ button.accent.saved {
   padding: 16px 24px;
   border-top: 1px solid var(--line);
   flex-shrink: 0;
-  background: linear-gradient(180deg, rgba(250, 242, 233, 0.9), rgba(247, 239, 229, 0.96));
+  background: linear-gradient(180deg, rgba(243, 248, 246, 0.9), rgba(238, 245, 243, 0.96));
 }
 
 .dialogFooterNote {
@@ -1119,6 +1140,7 @@ button.accent.saved {
   .settingsPane {
     width: 100%;
     flex-basis: auto;
+    height: auto;
   }
 
   .reviewGrid {
