@@ -11,7 +11,12 @@ type StoreShape = {
 };
 
 const STORE_DIR = () => path.join(app.getPath('userData'), 'data');
-const STORE_FILE = () => path.join(STORE_DIR(), 'kousei-store.json');
+const STORE_FILE = () => path.join(STORE_DIR(), 'shallow-t-write-store.json');
+const LEGACY_STORE_FILES = () => [
+  path.join(app.getPath('userData'), 'data', 'kousei-store.json'),
+  path.join(app.getPath('appData'), 'Kousei', 'data', 'kousei-store.json'),
+  path.join(app.getPath('appData'), 'kousei', 'data', 'kousei-store.json')
+];
 
 type LegacySettingsShape = Partial<AppSettings> & {
   customRules?: string[];
@@ -72,6 +77,16 @@ async function ensureStoreFile() {
   try {
     await readFile(STORE_FILE(), 'utf8');
   } catch {
+    for (const legacyFile of LEGACY_STORE_FILES()) {
+      try {
+        const legacyStore = await readFile(legacyFile, 'utf8');
+        await writeFile(STORE_FILE(), legacyStore, 'utf8');
+        return;
+      } catch {
+        // 旧アプリ名の保存先が無ければ新規作成する
+      }
+    }
+
     const initial: StoreShape = {
       settings: DEFAULT_SETTINGS,
       history: []

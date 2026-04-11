@@ -1,5 +1,5 @@
 {
-  "name": "kousei",
+  "name": "shallow-t-write",
   "version": "0.1.0",
   "description": "Mac-native proofreading assistant inspired by DeepL Write",
   "main": "out/main/main.js",
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "build": {
-    "appId": "jp.shinji.kousei",
-    "productName": "Kousei",
+    "appId": "jp.shinji.shallowtwrite",
+    "productName": "ShallowT Write",
     "files": [
       "out/**"
     ],

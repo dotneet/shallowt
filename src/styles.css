@@ -95,8 +95,11 @@ button.accent {
 
 .shell {
   padding: 18px;
-  padding-top: 48px;
+  padding-top: 20px;
+  min-height: 100vh;
+  height: 100vh;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
 }
 
@@ -167,10 +170,24 @@ button.accent {
 
 
 .workspace {
-  min-height: calc(100vh - 165px);
-  display: grid;
-  grid-template-columns: 1fr 1fr minmax(260px, 0.6fr);
+  display: flex;
+  align-items: stretch;
   gap: 14px;
+  min-height: 0;
+}
+
+.editorPane,
+.resultPane {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.settingsPane {
+  flex: 0 0 min(320px, 28vw);
+  width: min(320px, 28vw);
+  height: 100%;
+  overflow-y: auto;
 }
 
 .pane {
@@ -191,6 +208,7 @@ button.accent {
 
 .paneHeader {
   align-items: center;
+  min-height: 56px;
 }
 
 .copyButton {
@@ -211,7 +229,7 @@ button.accent {
 
 .paneHeader h2,
 .subPanelHeader h3 {
-  margin: 0.25rem 0 0;
+  margin: 0;
   font-size: 1.2rem;
 }
 
@@ -219,6 +237,11 @@ button.accent {
 .subPanelHeader span {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.paneActionButton {
+  padding: 0.62rem 0.95rem;
+  font-size: 0.92rem;
 }
 
 .editor {
@@ -474,6 +497,110 @@ button.accent {
 .rules {
   padding: 0.8rem 0.95rem;
   border-radius: 18px;
+}
+
+.shortcutRecorderPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.shortcutRecorderCard,
+.shortcutRecorderNotice {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 252, 247, 0.82);
+}
+
+.shortcutRecorderCard {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.shortcutRecorderCard.recording {
+  border-color: rgba(214, 105, 70, 0.42);
+  box-shadow: 0 14px 28px rgba(142, 59, 46, 0.12);
+  background: linear-gradient(180deg, rgba(255, 247, 240, 0.96), rgba(250, 242, 233, 0.9));
+}
+
+.shortcutRecorderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shortcutRecorderHeader strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.shortcutRecorderBadge {
+  flex-shrink: 0;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(71, 52, 36, 0.07);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.shortcutRecorderBadge.recording {
+  background: rgba(214, 105, 70, 0.16);
+  color: var(--accent);
+}
+
+.shortcutRecorderValue {
+  border-radius: 16px;
+  padding: 13px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(71, 52, 36, 0.08);
+  display: grid;
+  gap: 4px;
+}
+
+.shortcutRecorderDisplay {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.shortcutRecorderValue code {
+  font-family: "Menlo", "SF Mono", monospace;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.shortcutRecorderHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.shortcutRecorderActions,
+.shortcutRecorderFooter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shortcutRecorderNotice {
+  padding: 12px 14px;
+  color: #417958;
+  background: rgba(65, 121, 88, 0.09);
+  border-color: rgba(65, 121, 88, 0.18);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.shortcutRecorderNotice.error {
+  color: var(--issue);
+  background: rgba(157, 63, 50, 0.09);
+  border-color: rgba(157, 63, 50, 0.18);
+}
+
+.shortcutRecorderFooter {
+  justify-content: space-between;
 }
 
 .rules {
@@ -739,7 +866,6 @@ button.accent.saved {
 }
 
 .historyList {
-  margin-top: 12px;
   display: grid;
   gap: 10px;
   max-height: 400px;
@@ -793,6 +919,62 @@ button.accent.saved {
   margin-top: 6px;
   font-size: 0.92rem;
   color: var(--ink);
+}
+
+.historyTrigger {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  background: rgba(255, 252, 247, 0.78);
+}
+
+.historyTrigger strong,
+.historyTrigger span {
+  display: block;
+}
+
+.historyTrigger span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.shortcutSummaryList {
+  display: grid;
+  gap: 10px;
+}
+
+.shortcutSummaryList {
+  margin-top: 10px;
+}
+
+.shortcutSummaryItem {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.72);
+}
+
+.shortcutSummaryItem {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shortcutSummaryItem strong {
+  font-size: 0.88rem;
+}
+
+.shortcutSummaryItem code {
+  font-family: "Menlo", "SF Mono", monospace;
+  font-size: 0.76rem;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .linkButton {
@@ -920,9 +1102,23 @@ button.accent.saved {
 }
 
 @media (max-width: 1280px) {
-  .controlDeck,
-  .workspace {
+  .controlDeck {
     grid-template-columns: 1fr;
+  }
+
+  .shell {
+    height: auto;
+  }
+
+  .workspace {
+    flex-direction: column;
+  }
+
+  .editorPane,
+  .resultPane,
+  .settingsPane {
+    width: 100%;
+    flex-basis: auto;
   }
 
   .reviewGrid {
@@ -965,6 +1161,11 @@ button.accent.saved {
 
   .dialogFooterNote {
     width: 100%;
+  }
+
+  .shortcutSummaryItem {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .twoColumnLayout {

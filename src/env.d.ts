@@ -2,13 +2,15 @@ import type { AppSettings, ProofreadHistoryItem, ProofreadResponse } from '../el
 
 declare global {
   interface Window {
-    kousei: {
+    shallowTWrite: {
       getSettings: () => Promise<AppSettings>;
       saveSettings: (settings: AppSettings) => Promise<AppSettings>;
       listHistory: () => Promise<ProofreadHistoryItem[]>;
       runProofread: (source: string, settings: AppSettings) => Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>;
       proofreadSelection: () => Promise<void>;
       pasteResult: (text: string) => Promise<void>;
+      suspendShortcuts: () => Promise<void>;
+      resumeShortcuts: () => Promise<void>;
       onCaptured: (listener: (payload: { source: string }) => void) => () => void;
       onCompleted: (
         listener: (payload: ProofreadResponse & { source: string; history: ProofreadHistoryItem[] }) => void

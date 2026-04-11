@@ -5,8 +5,8 @@ const previewSettings: AppSettings = {
   activeRuleSetIds: ['preview-standard'],
   autoPasteResult: false,
   shortcut: {
-    proofread: 'CommandOrControl+Shift+K',
-    reopen: 'CommandOrControl+Shift+L'
+    proofread: 'Command+Shift+K',
+    reopen: 'Command+Shift+L'
   },
   providerApiKeys: {},
   ruleSets: [
@@ -96,6 +96,8 @@ export const mockApi = {
   }),
   proofreadSelection: async () => undefined,
   pasteResult: async (_text: string) => undefined,
+  suspendShortcuts: async () => undefined,
+  resumeShortcuts: async () => undefined,
   onCaptured: (_listener: (payload: { source: string }) => void) => () => undefined,
   onCompleted: (_listener: (payload: ProofreadResponse & { source: string; history: ProofreadHistoryItem[] }) => void) =>
     () => undefined,

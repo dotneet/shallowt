@@ -1,4 +1,4 @@
-# Kousei
+# ShallowT Write
 
 DeepL Write 風の Mac 向け校正アプリです。Electron 上で常駐し、グローバルショートカットから選択中テキストを取得して、設定した LLM で校正します。
 

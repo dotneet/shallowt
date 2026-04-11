@@ -10,6 +10,7 @@ import type { AppSettings, ProofreadHistoryItem } from './types';
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isQuiting = false;
+let shortcutsPaused = false;
 
 const isMac = process.platform === 'darwin';
 const isDev = !app.isPackaged;
@@ -105,6 +106,9 @@ async function createWindow() {
 
 async function refreshShortcuts() {
   globalShortcut.unregisterAll();
+  if (shortcutsPaused) {
+    return;
+  }
   const settings = await getSettings();
   const failedShortcuts: string[] = [];
 
@@ -135,7 +139,7 @@ async function refreshShortcuts() {
 
 function createTray() {
   tray = new Tray(getIcon());
-  tray.setToolTip('Kousei');
+  tray.setToolTip('ShallowT Write');
   const menu = Menu.buildFromTemplate([
     {
       label: 'ウィンドウを開く',
@@ -241,6 +245,14 @@ function registerIpcHandlers() {
   });
   ipcMain.handle('selection:paste-result', async (_, text: string) => {
     await pasteText(text);
+  });
+  ipcMain.handle('shortcuts:suspend', async () => {
+    shortcutsPaused = true;
+    globalShortcut.unregisterAll();
+  });
+  ipcMain.handle('shortcuts:resume', async () => {
+    shortcutsPaused = false;
+    await refreshShortcuts();
   });
 }
 

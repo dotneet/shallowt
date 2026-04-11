@@ -6,6 +6,7 @@ import type {
   ModelProfile,
   ProofreadHistoryItem,
   RuleSet,
+  ShortcutConfig,
   VerificationIssue
 } from '../electron/types';
 
@@ -29,8 +30,8 @@ const fallbackSettings: AppSettings = {
   activeRuleSetIds: ['default-rule-set'],
   autoPasteResult: false,
   shortcut: {
-    proofread: 'CommandOrControl+Shift+K',
-    reopen: 'CommandOrControl+Shift+L'
+    proofread: 'Command+Shift+K',
+    reopen: 'Command+Shift+L'
   },
   providerApiKeys: {},
   ruleSets: [
@@ -56,7 +57,181 @@ const fallbackSettings: AppSettings = {
   ]
 };
 
-const api = typeof window !== 'undefined' && window.kousei ? window.kousei : mockApi;
+const api = typeof window !== 'undefined' && window.shallowTWrite ? window.shallowTWrite : mockApi;
+const isApplePlatform = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const shortcutFieldMeta: Record<keyof ShortcutConfig, { title: string }> = {
+  proofread: {
+    title: '校正'
+  },
+  reopen: {
+    title: '再表示'
+  }
+};
+const modifierOnlyKeys = new Set(['Meta', 'Control', 'Shift', 'Alt', 'AltGraph']);
+
+function getAcceleratorKeyFromEvent(event: KeyboardEvent) {
+  const { code, key } = event;
+
+  if (/^Key[A-Z]$/.test(code)) {
+    return code.slice(3);
+  }
+
+  if (/^Digit[0-9]$/.test(code)) {
+    return code.slice(5);
+  }
+
+  if (/^F([1-9]|1[0-9]|2[0-4])$/i.test(key)) {
+    return key.toUpperCase();
+  }
+
+  switch (key) {
+    case ' ':
+    case 'Spacebar':
+      return 'Space';
+    case 'Enter':
+      return 'Return';
+    case 'Tab':
+      return 'Tab';
+    case 'Backspace':
+      return 'Backspace';
+    case 'Delete':
+      return 'Delete';
+    case 'Insert':
+      return 'Insert';
+    case 'Home':
+      return 'Home';
+    case 'End':
+      return 'End';
+    case 'PageUp':
+      return 'PageUp';
+    case 'PageDown':
+      return 'PageDown';
+    case 'ArrowUp':
+      return 'Up';
+    case 'ArrowDown':
+      return 'Down';
+    case 'ArrowLeft':
+      return 'Left';
+    case 'ArrowRight':
+      return 'Right';
+    case 'Escape':
+      return 'Escape';
+    default:
+      return /^[a-z0-9]$/i.test(key) ? key.toUpperCase() : null;
+  }
+}
+
+function formatShortcutForDisplay(accelerator: string) {
+  const labelMap: Record<string, string> = {
+    Command: isApplePlatform ? 'Command' : 'Super',
+    Control: 'Control',
+    Alt: isApplePlatform ? 'Option' : 'Alt',
+    Shift: 'Shift',
+    Super: 'Super',
+    Return: 'Return',
+    Space: 'Space',
+    Escape: 'Esc',
+    Up: '↑',
+    Down: '↓',
+    Left: '←',
+    Right: '→',
+    PageUp: 'Page Up',
+    PageDown: 'Page Down',
+    Backspace: 'Backspace',
+    Delete: 'Delete',
+    Insert: 'Insert',
+    Home: 'Home',
+    End: 'End',
+    Tab: 'Tab'
+  };
+
+  return accelerator
+    .split('+')
+    .filter(Boolean)
+    .map((segment) => labelMap[segment] ?? segment)
+    .join(' + ');
+}
+
+type ShortcutCaptureResult =
+  | { error: string }
+  | {
+      accelerator: string;
+      display: string;
+    };
+
+function captureShortcut(event: KeyboardEvent): ShortcutCaptureResult {
+  if (modifierOnlyKeys.has(event.key)) {
+    return { error: '修飾キーだけでは登録できません。文字キーや矢印キーを組み合わせてください。' };
+  }
+
+  const mainKey = getAcceleratorKeyFromEvent(event);
+  if (!mainKey) {
+    return { error: `「${event.key}」はまだショートカット入力に対応していません。` };
+  }
+
+  const modifiers: string[] = [];
+  if (event.metaKey) modifiers.push(isApplePlatform ? 'Command' : 'Super');
+  if (event.ctrlKey) modifiers.push('Control');
+  if (event.altKey) modifiers.push('Alt');
+  if (event.shiftKey) modifiers.push('Shift');
+
+  if (!modifiers.length) {
+    return { error: '誤操作を防ぐため、Command / Control / Option / Shift のいずれかを含めてください。' };
+  }
+
+  const accelerator = [...modifiers, mainKey].join('+');
+  return {
+    accelerator,
+    display: formatShortcutForDisplay(accelerator)
+  };
+}
+
+type ShortcutRecorderCardProps = {
+  title: string;
+  value: string;
+  isRecording: boolean;
+  onStart: () => void;
+  onCancel: () => void;
+  onReset: () => void;
+};
+
+function ShortcutRecorderCard({
+  title,
+  value,
+  isRecording,
+  onStart,
+  onCancel,
+  onReset
+}: ShortcutRecorderCardProps) {
+  return (
+    <section className={`shortcutRecorderCard${isRecording ? ' recording' : ''}`}>
+      <div className="shortcutRecorderHeader">
+        <strong>{title}</strong>
+        <span className={`shortcutRecorderBadge${isRecording ? ' recording' : ''}`}>
+          {isRecording ? '録音中' : '現在の設定'}
+        </span>
+      </div>
+
+      <div className="shortcutRecorderValue" aria-live="polite">
+        <span className="shortcutRecorderDisplay">{formatShortcutForDisplay(value)}</span>
+        <code>{value}</code>
+      </div>
+
+      <p className="shortcutRecorderHint">
+        {isRecording
+          ? 'キーを押してください。Esc でキャンセル'
+          : '記録開始後にキーを入力'}
+      </p>
+
+      <div className="shortcutRecorderActions">
+        <button className={isRecording ? 'accent' : ''} onClick={isRecording ? onCancel : onStart}>
+          {isRecording ? 'キャンセル' : '記録開始'}
+        </button>
+        <button onClick={onReset}>初期値に戻す</button>
+      </div>
+    </section>
+  );
+}
 
 function parseRules(text: string) {
   return text
@@ -126,8 +301,12 @@ export function App() {
   const [draftRuleText, setDraftRuleText] = useState('');
   const [copied, setCopied] = useState(false);
   const [ruleSetSaved, setRuleSetSaved] = useState(false);
+  const [recordingShortcut, setRecordingShortcut] = useState<keyof ShortcutConfig | null>(null);
+  const [shortcutNotice, setShortcutNotice] = useState('');
   const ruleSetDialogRef = useRef<HTMLDialogElement>(null);
   const modelDialogRef = useRef<HTMLDialogElement>(null);
+  const shortcutDialogRef = useRef<HTMLDialogElement>(null);
+  const historyDialogRef = useRef<HTMLDialogElement>(null);
   const apiKeyDialogRef = useRef<HTMLDialogElement>(null);
   const pastedRef = useRef(false);
 
@@ -175,6 +354,65 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!recordingShortcut) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (event.key === 'Escape') {
+        setRecordingShortcut(null);
+        setShortcutNotice('ショートカットの記録をキャンセルしました。');
+        return;
+      }
+
+      const captured = captureShortcut(event);
+      if ('error' in captured) {
+        setShortcutNotice(captured.error);
+        return;
+      }
+
+      setSettings((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        const normalized = normalizeSettings(prev);
+        return {
+          ...normalized,
+          shortcut: {
+            ...normalized.shortcut,
+            [recordingShortcut]: captured.accelerator
+          }
+        };
+      });
+      setRecordingShortcut(null);
+      setShortcutNotice(`${shortcutFieldMeta[recordingShortcut].title} を ${captured.display} に設定しました。保存すると反映されます。`);
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [recordingShortcut]);
+
+  useEffect(() => {
+    if (!recordingShortcut) {
+      return;
+    }
+
+    void api.suspendShortcuts();
+
+    return () => {
+      void api.resumeShortcuts();
+    };
+  }, [recordingShortcut]);
+
   async function runManualProofread(sourceOverride?: string) {
     const textToProofread = sourceOverride ?? source;
     if (!textToProofread.trim()) {
@@ -216,7 +454,7 @@ export function App() {
   }
 
   if (!settings) {
-    return <div className="loading">Kousei を読み込んでいます...</div>;
+    return <div className="loading">ShallowT Write を読み込んでいます...</div>;
   }
 
   const currentSettings = normalizeSettings(settings);
@@ -225,6 +463,66 @@ export function App() {
   const displaySegments = buildDisplaySegments(source, result);
   const safeVerification = normalizeVerificationList(verification);
   const statusTone = busy ? 'running' : safeVerification.length ? 'attention' : result ? 'clear' : 'idle';
+  const shortcutConflict = currentSettings.shortcut.proofread === currentSettings.shortcut.reopen;
+  const shortcutMessage = shortcutConflict
+    ? '「校正」と「再表示」に同じショートカットは設定できません。別の組み合わせにしてください。'
+    : shortcutNotice;
+
+  function openShortcutDialog() {
+    setShortcutNotice('');
+    shortcutDialogRef.current?.showModal();
+  }
+
+  function openHistoryDialog() {
+    historyDialogRef.current?.showModal();
+  }
+
+  function closeShortcutDialog() {
+    setRecordingShortcut(null);
+    shortcutDialogRef.current?.close();
+  }
+
+  function closeHistoryDialog() {
+    historyDialogRef.current?.close();
+  }
+
+  function startShortcutRecording(target: keyof ShortcutConfig) {
+    setRecordingShortcut(target);
+    setShortcutNotice('');
+  }
+
+  function cancelShortcutRecording() {
+    setRecordingShortcut(null);
+    setShortcutNotice('ショートカットの記録をキャンセルしました。');
+  }
+
+  function resetShortcut(target: keyof ShortcutConfig) {
+    const nextValue = fallbackSettings.shortcut[target];
+    setSettings({
+      ...currentSettings,
+      shortcut: {
+        ...currentSettings.shortcut,
+        [target]: nextValue
+      }
+    });
+    setShortcutNotice(`${shortcutFieldMeta[target].title}ショートカットを初期値に戻しました。保存すると反映されます。`);
+  }
+
+  function resetAllShortcuts() {
+    setSettings({
+      ...currentSettings,
+      shortcut: { ...fallbackSettings.shortcut }
+    });
+    setShortcutNotice('ショートカットをすべて初期値に戻しました。保存すると反映されます。');
+  }
+
+  function loadHistoryItem(item: ProofreadHistoryItem) {
+    setSource(item.source);
+    setResult(item.output);
+    setVerification(item.verification);
+    setStatus(`${item.modelName} の履歴を読み込みました。`);
+    closeHistoryDialog();
+  }
 
   async function toggleRuleSet(ruleSetId: string, checked: boolean) {
     const nextActiveRuleSetIds = checked
@@ -309,7 +607,7 @@ export function App() {
         <article className="pane editorPane">
           <div className="paneHeader">
             <h2>入力エディタ</h2>
-            <button className="accent" onClick={() => void runManualProofread()} disabled={busy}>
+            <button className="accent paneActionButton" onClick={() => void runManualProofread()} disabled={busy}>
               校正
             </button>
           </div>
@@ -435,6 +733,33 @@ export function App() {
 
           <div className="sidebarSection">
             <div className="sidebarSectionHeader">
+              <span>ショートカット</span>
+              <button className="linkButton" onClick={openShortcutDialog}>ショートカットの設定</button>
+            </div>
+            <div className="shortcutSummaryList">
+              <div className="shortcutSummaryItem">
+                <strong>{shortcutFieldMeta.proofread.title}</strong>
+                <code>{formatShortcutForDisplay(currentSettings.shortcut.proofread)}</code>
+              </div>
+              <div className="shortcutSummaryItem">
+                <strong>{shortcutFieldMeta.reopen.title}</strong>
+                <code>{formatShortcutForDisplay(currentSettings.shortcut.reopen)}</code>
+              </div>
+            </div>
+          </div>
+
+          <div className="sidebarSection">
+            <div className="sidebarSectionHeader">
+              <span>履歴</span>
+            </div>
+            <button className="historyTrigger" onClick={openHistoryDialog}>
+              <strong>履歴を開く</strong>
+              <span>{history.length} 件</span>
+            </button>
+          </div>
+
+          <div className="sidebarSection">
+            <div className="sidebarSectionHeader">
               <span>API キー</span>
               <button className="linkButton" onClick={() => apiKeyDialogRef.current?.showModal()}>編集</button>
             </div>
@@ -451,51 +776,82 @@ export function App() {
             </div>
           </div>
 
-          <details className="subPanel collapsible">
-            <summary className="collapseSummary">
-              <span>ショートカット</span>
-            </summary>
-            <div className="fieldGroup">
-              <label className="field">
-                <span>校正</span>
-                <input
-                  value={currentSettings.shortcut.proofread}
-                  onChange={(event) => setSettings({ ...currentSettings, shortcut: { ...currentSettings.shortcut, proofread: event.target.value } })}
-                />
-              </label>
-              <label className="field">
-                <span>再表示</span>
-                <input
-                  value={currentSettings.shortcut.reopen}
-                  onChange={(event) => setSettings({ ...currentSettings, shortcut: { ...currentSettings.shortcut, reopen: event.target.value } })}
-                />
-              </label>
-              <button onClick={() => void saveCurrentSettings(currentSettings)} disabled={busy}>保存</button>
-            </div>
-          </details>
-
-          <details className="subPanel collapsible">
-            <summary className="collapseSummary">
-              <span>履歴</span>
-              <span>{history.length} 件</span>
-            </summary>
-            <div className="historyList">
-              {history.map((item) => (
-                <button className="historyItem" key={item.id} onClick={() => {
-                  setSource(item.source);
-                  setResult(item.output);
-                  setVerification(item.verification);
-                  setStatus(`${item.modelName} の履歴を読み込みました。`);
-                }}>
-                  <strong>{item.modelName}</strong>
-                  <span>{new Date(item.createdAt).toLocaleString()}</span>
-                  <p>{item.source.slice(0, 96)}</p>
-                </button>
-              ))}
-            </div>
-          </details>
         </article>
       </section>
+
+      <dialog
+        ref={shortcutDialogRef}
+        className="kDialog"
+        onClose={() => {
+          setRecordingShortcut(null);
+        }}
+      >
+        <div className="dialogHeader">
+          <h2>ショートカットの設定</h2>
+          <button className="dialogClose" onClick={closeShortcutDialog}>✕</button>
+        </div>
+        <div className="dialogBody">
+          <div className="shortcutRecorderPanel">
+            <ShortcutRecorderCard
+              title={shortcutFieldMeta.proofread.title}
+              value={currentSettings.shortcut.proofread}
+              isRecording={recordingShortcut === 'proofread'}
+              onStart={() => startShortcutRecording('proofread')}
+              onCancel={cancelShortcutRecording}
+              onReset={() => resetShortcut('proofread')}
+            />
+
+            <ShortcutRecorderCard
+              title={shortcutFieldMeta.reopen.title}
+              value={currentSettings.shortcut.reopen}
+              isRecording={recordingShortcut === 'reopen'}
+              onStart={() => startShortcutRecording('reopen')}
+              onCancel={cancelShortcutRecording}
+              onReset={() => resetShortcut('reopen')}
+            />
+
+            <div className={`shortcutRecorderNotice${shortcutConflict ? ' error' : ''}`}>
+              {shortcutMessage || '保存後すぐにグローバルショートカットへ再登録されます。'}
+            </div>
+          </div>
+        </div>
+        <div className="dialogFooter">
+          <button onClick={resetAllShortcuts}>すべて初期値に戻す</button>
+          <div style={{ flex: 1 }} />
+          <button onClick={closeShortcutDialog}>閉じる</button>
+          <button
+            className="accent"
+            onClick={() => void saveCurrentSettings(currentSettings)}
+            disabled={busy || recordingShortcut !== null || shortcutConflict}
+          >
+            保存して反映
+          </button>
+        </div>
+      </dialog>
+
+      <dialog ref={historyDialogRef} className="kDialog">
+        <div className="dialogHeader">
+          <h2>履歴</h2>
+          <button className="dialogClose" onClick={closeHistoryDialog}>✕</button>
+        </div>
+        <div className="dialogBody">
+          <div className="historyList">
+            {history.length ? history.map((item) => (
+              <button className="historyItem" key={item.id} onClick={() => loadHistoryItem(item)}>
+                <strong>{item.modelName}</strong>
+                <span>{new Date(item.createdAt).toLocaleString()}</span>
+                <p>{item.source.slice(0, 96)}</p>
+              </button>
+            )) : (
+              <p className="emptyState">履歴はまだありません。</p>
+            )}
+          </div>
+        </div>
+        <div className="dialogFooter">
+          <div style={{ flex: 1 }} />
+          <button onClick={closeHistoryDialog}>閉じる</button>
+        </div>
+      </dialog>
 
       {/* ルールセットダイアログ */}
       <dialog ref={ruleSetDialogRef} className="kDialog kDialog--wide">

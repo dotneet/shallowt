@@ -26,8 +26,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   activeRuleSetIds: ['standard'],
   autoPasteResult: false,
   shortcut: {
-    proofread: 'CommandOrControl+Shift+K',
-    reopen: 'CommandOrControl+Shift+L'
+    proofread: 'Command+Shift+K',
+    reopen: 'Command+Shift+L'
   },
   providerApiKeys: {},
   ruleSets: DEFAULT_RULE_SETS,
