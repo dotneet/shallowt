@@ -13,8 +13,8 @@ DeepL Write 風の Mac 向け校正アプリです。Electron 上で常駐し、
 ## セットアップ
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 ## 使い方
@@ -31,5 +31,5 @@ npm run dev
 ## ビルド
 
 ```bash
-npm run build
+bun run build
 ```

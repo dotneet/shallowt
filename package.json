@@ -4,9 +4,10 @@
   "description": "Mac-native proofreading assistant inspired by DeepL Write",
   "main": "out/main/main.js",
   "type": "module",
+  "packageManager": "bun@1.3.11",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "npm run typecheck && electron-vite build && electron-builder",
+    "dev": "bun scripts/dev.mjs",
+    "build": "bun run typecheck && electron-vite build && electron-builder",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
