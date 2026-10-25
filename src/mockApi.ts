@@ -1,4 +1,4 @@
-import type { AppSettings, ProofreadHistoryItem, ProofreadResponse } from '../electron/types';
+import type { AppSettings, ProofreadHistoryItem, ProofreadResponse, StatusPayload } from '../electron/types';
 
 const previewSettings: AppSettings = {
   activeModelId: 'preview-model',
@@ -95,11 +95,12 @@ export const mockApi = {
     history: structuredClone(inMemoryHistory)
   }),
   proofreadSelection: async () => undefined,
+  openAccessibilitySettings: async () => undefined,
   pasteResult: async (_text: string) => undefined,
   suspendShortcuts: async () => undefined,
   resumeShortcuts: async () => undefined,
   onCaptured: (_listener: (payload: { source: string }) => void) => () => undefined,
   onCompleted: (_listener: (payload: ProofreadResponse & { source: string; history: ProofreadHistoryItem[] }) => void) =>
     () => undefined,
-  onStatus: (_listener: (payload: { kind: 'error'; message: string }) => void) => () => undefined
+  onStatus: (_listener: (payload: StatusPayload) => void) => () => undefined
 };

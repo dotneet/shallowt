@@ -1,14 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppSettings, ProofreadHistoryItem, ProofreadResponse } from './types';
+import type { AppSettings, ProofreadHistoryItem, ProofreadResponse, StatusPayload } from './types';
 
 type CompletedPayload = ProofreadResponse & {
   source: string;
   history: ProofreadHistoryItem[];
-};
-
-type StatusPayload = {
-  kind: 'error';
-  message: string;
 };
 
 contextBridge.exposeInMainWorld('shallowTWrite', {
@@ -18,6 +13,7 @@ contextBridge.exposeInMainWorld('shallowTWrite', {
   runProofread: (source: string) =>
     ipcRenderer.invoke('proofread:run', source) as Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>,
   proofreadSelection: () => ipcRenderer.invoke('selection:proofread') as Promise<void>,
+  openAccessibilitySettings: () => ipcRenderer.invoke('accessibility:open-settings') as Promise<void>,
   pasteResult: (text: string) => ipcRenderer.invoke('selection:paste-result', text) as Promise<void>,
   suspendShortcuts: () => ipcRenderer.invoke('shortcuts:suspend') as Promise<void>,
   resumeShortcuts: () => ipcRenderer.invoke('shortcuts:resume') as Promise<void>,

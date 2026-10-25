@@ -1,3 +1,7 @@
 [install]
 # 公開から 3 日 (259200 秒) 未満のパッケージはインストールしない
 minimumReleaseAge = 259200
+
+[test]
+# electron のモックを全テストで共有する
+preload = ["./tests/electron-mock.ts"]

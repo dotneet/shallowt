@@ -8,6 +8,7 @@ import type {
   Provider,
   RuleSet,
   ShortcutConfig,
+  StatusPayload,
   VerificationIssue
 } from '../electron/types';
 
@@ -296,6 +297,8 @@ export function App() {
   const [verification, setVerification] = useState<VerificationIssue[]>([]);
   const [promptPreview, setPromptPreview] = useState('');
   const [status, setStatus] = useState('起動中...');
+  // 案内ボタンは、それを出したステータス文言が表示されている間だけ出す
+  const [statusAction, setStatusAction] = useState<{ message: string; action: NonNullable<StatusPayload['action']> } | null>(null);
   const [busy, setBusy] = useState(false);
   const [draftModel, setDraftModel] = useState<ModelProfile>(emptyModel);
   const [draftRuleSet, setDraftRuleSet] = useState<RuleSet>(emptyRuleSet);
@@ -348,6 +351,7 @@ export function App() {
     const offStatus = api.onStatus((payload) => {
       setBusy(false);
       setStatus(payload.message);
+      setStatusAction(payload.action ? { message: payload.message, action: payload.action } : null);
     });
 
     return () => {
@@ -628,9 +632,14 @@ export function App() {
 
   return (
     <main className="shell">
-      <div className="statusLine">
+      <div className={`statusLine${statusAction?.message === status ? ' hasAction' : ''}`}>
         <span className={`statusDot ${statusTone}`} />
         <span className="subtle">{status}</span>
+        {statusAction?.message === status && statusAction.action === 'open-accessibility-settings' && (
+          <button className="linkButton statusActionButton" onClick={() => void api.openAccessibilitySettings()}>
+            システム設定を開く
+          </button>
+        )}
       </div>
 
       <section className="workspace">

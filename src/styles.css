@@ -143,6 +143,14 @@ button.accent {
   backdrop-filter: blur(12px);
 }
 
+.statusLine.hasAction {
+  border-radius: 18px;
+}
+
+.statusActionButton {
+  flex-shrink: 0;
+}
+
 .statusDot {
   width: 10px;
   height: 10px;

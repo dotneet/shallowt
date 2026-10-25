@@ -3,32 +3,30 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import type { AppSettings, ProofreadHistoryItem } from '../electron/types';
+import { electronMock } from './electron-mock';
 
 let tempDir = '';
 let decryptShouldFail = false;
 
 const FAKE_PREFIX = 'fake-enc:';
 
-mock.module('electron', () => ({
-  app: {
-    getPath: (name: string) => path.join(tempDir, name)
-  },
-  safeStorage: {
-    isEncryptionAvailable: () => true,
-    // 可逆な疑似暗号化 (平文がファイルに出ないよう hex にする)
-    encryptString: (plain: string) => Buffer.from(FAKE_PREFIX + Buffer.from(plain, 'utf8').toString('hex'), 'utf8'),
-    decryptString: (encrypted: Buffer) => {
-      if (decryptShouldFail) {
-        throw new Error('decrypt failed');
-      }
-      const text = encrypted.toString('utf8');
-      if (!text.startsWith(FAKE_PREFIX)) {
-        throw new Error('invalid payload');
-      }
-      return Buffer.from(text.slice(FAKE_PREFIX.length), 'hex').toString('utf8');
+function installElectronMock() {
+  electronMock.app.getPath = (name: string) => path.join(tempDir, name);
+  electronMock.safeStorage.isEncryptionAvailable = () => true;
+  // 可逆な疑似暗号化 (平文がファイルに出ないよう hex にする)
+  electronMock.safeStorage.encryptString = (plain: string) =>
+    Buffer.from(FAKE_PREFIX + Buffer.from(plain, 'utf8').toString('hex'), 'utf8');
+  electronMock.safeStorage.decryptString = (encrypted: Buffer) => {
+    if (decryptShouldFail) {
+      throw new Error('decrypt failed');
     }
-  }
-}));
+    const text = encrypted.toString('utf8');
+    if (!text.startsWith(FAKE_PREFIX)) {
+      throw new Error('invalid payload');
+    }
+    return Buffer.from(text.slice(FAKE_PREFIX.length), 'hex').toString('utf8');
+  };
+}
 
 const store = await import('../electron/store');
 const { DEFAULT_SETTINGS } = await import('../electron/defaults');
@@ -64,6 +62,7 @@ function historyItem(id: string): ProofreadHistoryItem {
 beforeEach(async () => {
   tempDir = await mkdtemp(path.join(os.tmpdir(), 'store-test-'));
   decryptShouldFail = false;
+  installElectronMock();
 });
 
 afterEach(async () => {

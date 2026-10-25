@@ -50,6 +50,12 @@ export type ProofreadHistoryItem = {
   verification: VerificationIssue[];
 };
 
+export type StatusPayload = {
+  kind: 'error';
+  message: string;
+  action?: 'open-accessibility-settings';
+};
+
 export type ProofreadResponse = {
   output: string;
   modelName: string;

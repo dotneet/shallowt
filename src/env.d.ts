@@ -1,4 +1,4 @@
-import type { AppSettings, ProofreadHistoryItem, ProofreadResponse } from '../electron/types';
+import type { AppSettings, ProofreadHistoryItem, ProofreadResponse, StatusPayload } from '../electron/types';
 
 declare global {
   interface Window {
@@ -8,6 +8,7 @@ declare global {
       listHistory: () => Promise<ProofreadHistoryItem[]>;
       runProofread: (source: string) => Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>;
       proofreadSelection: () => Promise<void>;
+      openAccessibilitySettings: () => Promise<void>;
       pasteResult: (text: string) => Promise<void>;
       suspendShortcuts: () => Promise<void>;
       resumeShortcuts: () => Promise<void>;
@@ -15,7 +16,7 @@ declare global {
       onCompleted: (
         listener: (payload: ProofreadResponse & { source: string; history: ProofreadHistoryItem[] }) => void
       ) => () => void;
-      onStatus: (listener: (payload: { kind: 'error'; message: string }) => void) => () => void;
+      onStatus: (listener: (payload: StatusPayload) => void) => () => void;
     };
   }
 }

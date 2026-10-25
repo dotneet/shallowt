@@ -1,8 +1,37 @@
-import { clipboard } from 'electron';
+import { clipboard, systemPreferences } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+
+export const ACCESSIBILITY_SETTINGS_URL = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
+
+const ACCESSIBILITY_GUIDE =
+  '選択テキストの取得には macOS のアクセシビリティ権限が必要です。「システム設定 > プライバシーとセキュリティ > アクセシビリティ」で ShallowT Write をオンにしてください。' +
+  'すでにオンの場合は、再ビルドで権限が無効になっている可能性があるため、一覧から「−」で削除して追加し直し、アプリを再起動してください。';
+
+export class AccessibilityPermissionError extends Error {
+  constructor() {
+    super(ACCESSIBILITY_GUIDE);
+    this.name = 'AccessibilityPermissionError';
+  }
+}
+
+/** System Events へのキー送信が権限不足で拒否されたときのエラーか (1002: キー送信不可, -1719: 補助アクセス不可) */
+export function isAccessibilityDeniedError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /\((1002|-1719|-25211)\)/.test(message);
+}
+
+/** 権限が無ければ macOS の許可ダイアログを出し、案内付きのエラーにする */
+export function ensureAccessibilityPermission() {
+  if (process.platform !== 'darwin' || systemPreferences.isTrustedAccessibilityClient(false)) {
+    return;
+  }
+
+  systemPreferences.isTrustedAccessibilityClient(true);
+  throw new AccessibilityPermissionError();
+}
 
 type ClipboardSnapshot = Array<{
   format: string;
@@ -10,7 +39,14 @@ type ClipboardSnapshot = Array<{
 }>;
 
 async function runAppleScript(script: string) {
-  return execFileAsync('osascript', ['-e', script]);
+  try {
+    return await execFileAsync('osascript', ['-e', script]);
+  } catch (error) {
+    if (isAccessibilityDeniedError(error)) {
+      throw new AccessibilityPermissionError();
+    }
+    throw error;
+  }
 }
 
 function delay(ms: number) {
@@ -85,6 +121,7 @@ async function readSelectedTextViaCopy() {
 }
 
 export async function readSelectedText() {
+  ensureAccessibilityPermission();
   const selectedText = await readSelectedTextViaAccessibility();
   if (selectedText.trim()) {
     return selectedText;
@@ -101,6 +138,7 @@ export async function getFrontmostApplication() {
 }
 
 export async function pasteText(text: string, applicationName?: string) {
+  ensureAccessibilityPermission();
   const previousClipboard = snapshotClipboard();
   clipboard.writeText(text);
   await delay(80);

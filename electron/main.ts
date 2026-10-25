@@ -1,11 +1,11 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen } from 'electron';
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen, shell } from 'electron';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getActiveRules } from './rules';
 import { getSettings, getHistory, pushHistory, saveSettings } from './store';
-import { pasteText, readSelectedText } from './selection';
+import { ACCESSIBILITY_SETTINGS_URL, AccessibilityPermissionError, pasteText, readSelectedText } from './selection';
 import { proofreadText } from './proofread';
-import type { AppSettings, ProofreadHistoryItem } from './types';
+import type { AppSettings, ProofreadHistoryItem, StatusPayload } from './types';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -207,7 +207,7 @@ async function handleGlobalProofread() {
       showWindow();
       mainWindow?.webContents.send('proofread:status', {
         kind: 'error',
-        message: '選択テキストを取得できませんでした。macOSのアクセシビリティ許可を確認してください。'
+        message: '選択テキストを取得できませんでした。テキストを選択してから実行してください。'
       });
       return;
     }
@@ -224,12 +224,15 @@ async function handleGlobalProofread() {
       source: selectedText
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : '不明なエラーが発生しました。';
-    showWindow();
-    mainWindow?.webContents.send('proofread:status', {
+    const payload: StatusPayload = {
       kind: 'error',
-      message
-    });
+      message: error instanceof Error ? error.message : '不明なエラーが発生しました。'
+    };
+    if (error instanceof AccessibilityPermissionError) {
+      payload.action = 'open-accessibility-settings';
+    }
+    showWindow();
+    mainWindow?.webContents.send('proofread:status', payload);
   } finally {
     globalProofreadRunning = false;
   }
@@ -247,6 +250,9 @@ function registerIpcHandlers() {
   ipcMain.handle('proofread:run', async (_, source: string) => proofreadAndRecord(source));
   ipcMain.handle('selection:proofread', async () => {
     await handleGlobalProofread();
+  });
+  ipcMain.handle('accessibility:open-settings', async () => {
+    await shell.openExternal(ACCESSIBILITY_SETTINGS_URL);
   });
   ipcMain.handle('selection:paste-result', async (_, text: string) => {
     await pasteText(text);
