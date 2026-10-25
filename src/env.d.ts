@@ -6,7 +6,7 @@ declare global {
       getSettings: () => Promise<AppSettings>;
       saveSettings: (settings: AppSettings) => Promise<AppSettings>;
       listHistory: () => Promise<ProofreadHistoryItem[]>;
-      runProofread: (source: string, settings: AppSettings) => Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>;
+      runProofread: (source: string) => Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>;
       proofreadSelection: () => Promise<void>;
       pasteResult: (text: string) => Promise<void>;
       suspendShortcuts: () => Promise<void>;

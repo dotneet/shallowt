@@ -10,12 +10,23 @@ type Operation = {
   tokens: string[];
 };
 
+const MAX_LCS_CELLS = 4_000_000;
+
+let cachedSegmenter: Intl.Segmenter | null | undefined;
+
+function getSegmenter() {
+  if (cachedSegmenter === undefined) {
+    cachedSegmenter =
+      typeof Intl !== 'undefined' && 'Segmenter' in Intl
+        ? new Intl.Segmenter('ja', { granularity: 'word' })
+        : null;
+  }
+  return cachedSegmenter;
+}
+
 function tokenize(text: string) {
   const parts = text.split(/(\s+)/).filter((part) => part.length > 0);
-  const segmenter =
-    typeof Intl !== 'undefined' && 'Segmenter' in Intl
-      ? new Intl.Segmenter('ja', { granularity: 'word' })
-      : null;
+  const segmenter = getSegmenter();
 
   return parts.flatMap((part) => {
     if (/^\s+$/.test(part)) {
@@ -30,7 +41,79 @@ function tokenize(text: string) {
   });
 }
 
-function groupOperations(operations: Array<{ kind: 'same' | 'insert' | 'delete'; token: string }>) {
+function normalizeToken(token: string) {
+  return /^\s+$/.test(token) ? '\x00' : token;
+}
+
+type TokenOperation = { kind: 'same' | 'insert' | 'delete'; token: string };
+
+function diffMiddle(
+  sourceTokens: string[],
+  outputTokens: string[],
+  sourceKeys: string[],
+  outputKeys: string[],
+  operations: TokenOperation[]
+) {
+  const sourceLength = sourceTokens.length;
+  const outputLength = outputTokens.length;
+
+  // 大きすぎる差分は LCS を諦め、まとめて置換として扱う
+  if (!sourceLength || !outputLength || sourceLength * outputLength > MAX_LCS_CELLS) {
+    for (const token of sourceTokens) operations.push({ kind: 'delete', token });
+    for (const token of outputTokens) operations.push({ kind: 'insert', token });
+    return;
+  }
+
+  const width = outputLength + 1;
+  const table = new Uint32Array((sourceLength + 1) * width);
+
+  for (let sourceIndex = sourceLength - 1; sourceIndex >= 0; sourceIndex -= 1) {
+    const row = sourceIndex * width;
+    const nextRow = row + width;
+    for (let outputIndex = outputLength - 1; outputIndex >= 0; outputIndex -= 1) {
+      if (sourceKeys[sourceIndex] === outputKeys[outputIndex]) {
+        table[row + outputIndex] = table[nextRow + outputIndex + 1] + 1;
+      } else {
+        const down = table[nextRow + outputIndex];
+        const right = table[row + outputIndex + 1];
+        table[row + outputIndex] = down > right ? down : right;
+      }
+    }
+  }
+
+  let sourceIndex = 0;
+  let outputIndex = 0;
+
+  while (sourceIndex < sourceLength && outputIndex < outputLength) {
+    if (sourceKeys[sourceIndex] === outputKeys[outputIndex]) {
+      operations.push({ kind: 'same', token: outputTokens[outputIndex] });
+      sourceIndex += 1;
+      outputIndex += 1;
+      continue;
+    }
+
+    if (table[(sourceIndex + 1) * width + outputIndex] >= table[sourceIndex * width + outputIndex + 1]) {
+      operations.push({ kind: 'delete', token: sourceTokens[sourceIndex] });
+      sourceIndex += 1;
+      continue;
+    }
+
+    operations.push({ kind: 'insert', token: outputTokens[outputIndex] });
+    outputIndex += 1;
+  }
+
+  while (sourceIndex < sourceLength) {
+    operations.push({ kind: 'delete', token: sourceTokens[sourceIndex] });
+    sourceIndex += 1;
+  }
+
+  while (outputIndex < outputLength) {
+    operations.push({ kind: 'insert', token: outputTokens[outputIndex] });
+    outputIndex += 1;
+  }
+}
+
+function groupOperations(operations: TokenOperation[]) {
   return operations.reduce<Operation[]>((groups, operation) => {
     const lastGroup = groups[groups.length - 1];
     if (lastGroup?.kind === operation.kind) {
@@ -64,70 +147,45 @@ export function buildDisplaySegments(source: string, output: string): DisplaySeg
     ];
   }
 
-  const normalizeToken = (token: string) => (/^\s+$/.test(token) ? '\x00' : token);
+  const sourceKeys = sourceTokens.map(normalizeToken);
+  const outputKeys = outputTokens.map(normalizeToken);
 
-  const table = Array.from({ length: sourceTokens.length + 1 }, () =>
-    Array.from({ length: outputTokens.length + 1 }, () => 0)
+  let prefixLength = 0;
+  while (
+    prefixLength < sourceTokens.length &&
+    prefixLength < outputTokens.length &&
+    sourceKeys[prefixLength] === outputKeys[prefixLength]
+  ) {
+    prefixLength += 1;
+  }
+
+  let suffixLength = 0;
+  while (
+    suffixLength < sourceTokens.length - prefixLength &&
+    suffixLength < outputTokens.length - prefixLength &&
+    sourceKeys[sourceTokens.length - 1 - suffixLength] === outputKeys[outputTokens.length - 1 - suffixLength]
+  ) {
+    suffixLength += 1;
+  }
+
+  const sourceEnd = sourceTokens.length - suffixLength;
+  const outputEnd = outputTokens.length - suffixLength;
+  const operations: TokenOperation[] = [];
+
+  for (let index = 0; index < prefixLength; index += 1) {
+    operations.push({ kind: 'same', token: outputTokens[index] });
+  }
+
+  diffMiddle(
+    sourceTokens.slice(prefixLength, sourceEnd),
+    outputTokens.slice(prefixLength, outputEnd),
+    sourceKeys.slice(prefixLength, sourceEnd),
+    outputKeys.slice(prefixLength, outputEnd),
+    operations
   );
 
-  for (let sourceIndex = sourceTokens.length - 1; sourceIndex >= 0; sourceIndex -= 1) {
-    for (let outputIndex = outputTokens.length - 1; outputIndex >= 0; outputIndex -= 1) {
-      if (normalizeToken(sourceTokens[sourceIndex]) === normalizeToken(outputTokens[outputIndex])) {
-        table[sourceIndex][outputIndex] = table[sourceIndex + 1][outputIndex + 1] + 1;
-      } else {
-        table[sourceIndex][outputIndex] = Math.max(
-          table[sourceIndex + 1][outputIndex],
-          table[sourceIndex][outputIndex + 1]
-        );
-      }
-    }
-  }
-
-  const operations: Array<{ kind: 'same' | 'insert' | 'delete'; token: string }> = [];
-  let sourceIndex = 0;
-  let outputIndex = 0;
-
-  while (sourceIndex < sourceTokens.length && outputIndex < outputTokens.length) {
-    if (normalizeToken(sourceTokens[sourceIndex]) === normalizeToken(outputTokens[outputIndex])) {
-      operations.push({
-        kind: 'same',
-        token: outputTokens[outputIndex]
-      });
-      sourceIndex += 1;
-      outputIndex += 1;
-      continue;
-    }
-
-    if (table[sourceIndex + 1][outputIndex] >= table[sourceIndex][outputIndex + 1]) {
-      operations.push({
-        kind: 'delete',
-        token: sourceTokens[sourceIndex]
-      });
-      sourceIndex += 1;
-      continue;
-    }
-
-    operations.push({
-      kind: 'insert',
-      token: outputTokens[outputIndex]
-    });
-    outputIndex += 1;
-  }
-
-  while (sourceIndex < sourceTokens.length) {
-    operations.push({
-      kind: 'delete',
-      token: sourceTokens[sourceIndex]
-    });
-    sourceIndex += 1;
-  }
-
-  while (outputIndex < outputTokens.length) {
-    operations.push({
-      kind: 'insert',
-      token: outputTokens[outputIndex]
-    });
-    outputIndex += 1;
+  for (let index = outputEnd; index < outputTokens.length; index += 1) {
+    operations.push({ kind: 'same', token: outputTokens[index] });
   }
 
   const grouped = groupOperations(operations);

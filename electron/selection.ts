@@ -32,10 +32,15 @@ function restoreClipboard(snapshot: ClipboardSnapshot) {
   }
 }
 
+/** osascript が末尾に付ける改行だけを落とし、選択範囲自体の前後の空白は残す */
+function stripOsascriptNewline(stdout: string) {
+  return stdout.replace(/\n$/, '');
+}
+
 async function readClipboardTextWithRetry() {
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const text = clipboard.readText().trim();
-    if (text) {
+    const text = clipboard.readText();
+    if (text.trim()) {
       return text;
     }
 
@@ -62,7 +67,7 @@ async function readSelectedTextViaAccessibility() {
     end tell
   `);
 
-  return stdout.trim();
+  return stripOsascriptNewline(stdout);
 }
 
 async function readSelectedTextViaCopy() {
@@ -81,7 +86,7 @@ async function readSelectedTextViaCopy() {
 
 export async function readSelectedText() {
   const selectedText = await readSelectedTextViaAccessibility();
-  if (selectedText) {
+  if (selectedText.trim()) {
     return selectedText;
   }
 
@@ -92,7 +97,7 @@ export async function getFrontmostApplication() {
   const { stdout } = await runAppleScript(
     'tell application "System Events" to get name of first application process whose frontmost is true'
   );
-  return stdout.trim();
+  return stripOsascriptNewline(stdout);
 }
 
 export async function pasteText(text: string, applicationName?: string) {
@@ -102,12 +107,14 @@ export async function pasteText(text: string, applicationName?: string) {
 
   try {
     if (applicationName) {
-      await runAppleScript(`tell application "${applicationName.replaceAll('"', '\\"')}" to activate`);
+      const escapedName = applicationName.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+      await runAppleScript(`tell application "${escapedName}" to activate`);
       await delay(100);
     }
 
     await runAppleScript('tell application "System Events" to keystroke "v" using command down');
-    await delay(80);
+    // 貼り付け先アプリがクリップボードを読み終える前に復元しないよう待つ
+    await delay(500);
   } finally {
     restoreClipboard(previousClipboard);
   }

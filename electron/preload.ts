@@ -15,8 +15,8 @@ contextBridge.exposeInMainWorld('shallowTWrite', {
   getSettings: () => ipcRenderer.invoke('settings:get') as Promise<AppSettings>,
   saveSettings: (settings: AppSettings) => ipcRenderer.invoke('settings:save', settings) as Promise<AppSettings>,
   listHistory: () => ipcRenderer.invoke('history:list') as Promise<ProofreadHistoryItem[]>,
-  runProofread: (source: string, settings: AppSettings) =>
-    ipcRenderer.invoke('proofread:run', source, settings) as Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>,
+  runProofread: (source: string) =>
+    ipcRenderer.invoke('proofread:run', source) as Promise<ProofreadResponse & { history: ProofreadHistoryItem[] }>,
   proofreadSelection: () => ipcRenderer.invoke('selection:proofread') as Promise<void>,
   pasteResult: (text: string) => ipcRenderer.invoke('selection:paste-result', text) as Promise<void>,
   suspendShortcuts: () => ipcRenderer.invoke('shortcuts:suspend') as Promise<void>,

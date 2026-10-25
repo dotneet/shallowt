@@ -9,8 +9,9 @@ import type { AppSettings, ProofreadHistoryItem } from './types';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let isQuiting = false;
+let isQuitting = false;
 let shortcutsPaused = false;
+let globalProofreadRunning = false;
 
 const isMac = process.platform === 'darwin';
 const isDev = !app.isPackaged;
@@ -18,6 +19,7 @@ const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
 if (!hasSingleInstanceLock) {
   app.quit();
+  process.exit(0);
 }
 
 function getIcon() {
@@ -48,17 +50,18 @@ function showWindow() {
     mainWindow.restore();
   }
 
-  const workArea = screen.getPrimaryDisplay().workArea;
+  // マウスカーソルがあるディスプレイの中央に表示する
+  const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const bounds = mainWindow.getBounds();
-  const nextX = Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - bounds.width);
-  const nextY = Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - bounds.height);
+  const width = Math.min(bounds.width, workArea.width);
+  const height = Math.min(bounds.height, workArea.height);
 
   mainWindow.setBounds({
-    ...bounds,
-    x: Number.isFinite(nextX) ? nextX : workArea.x + 40,
-    y: Number.isFinite(nextY) ? nextY : workArea.y + 40
+    x: Math.round(workArea.x + (workArea.width - width) / 2),
+    y: Math.round(workArea.y + (workArea.height - height) / 2),
+    width,
+    height
   });
-  mainWindow.center();
   mainWindow.show();
   mainWindow.moveTop();
   mainWindow.focus();
@@ -81,7 +84,7 @@ async function createWindow() {
   });
 
   mainWindow.on('close', (event) => {
-    if (!isQuiting) {
+    if (!isQuitting) {
       event.preventDefault();
       mainWindow?.hide();
     }
@@ -121,7 +124,7 @@ async function refreshShortcuts() {
 
   const reopenRegistered = globalShortcut.register(settings.shortcut.reopen, () => {
     showWindow();
-    void mainWindow?.webContents.send('shortcut:reopen');
+    mainWindow?.webContents.send('shortcut:reopen');
   });
   if (!reopenRegistered) {
     failedShortcuts.push(`再表示: ${settings.shortcut.reopen}`);
@@ -137,7 +140,7 @@ async function refreshShortcuts() {
   if (failedShortcuts.length) {
     const message = `ショートカットを登録できませんでした。他のアプリと競合している可能性があります。${failedShortcuts.join(' / ')}`;
     console.warn(message);
-    void mainWindow?.webContents.send('proofread:status', {
+    mainWindow?.webContents.send('proofread:status', {
       kind: 'error',
       message
     });
@@ -162,7 +165,6 @@ function createTray() {
     {
       label: '終了',
       click: () => {
-        isQuiting = true;
         app.quit();
       }
     }
@@ -171,14 +173,39 @@ function createTray() {
   tray.on('click', showWindow);
 }
 
+async function proofreadAndRecord(source: string) {
+  const settings = await getSettings();
+  const result = await proofreadText(source, settings);
+  const historyItem: ProofreadHistoryItem = {
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+    source,
+    output: result.output,
+    modelName: result.modelName,
+    rulesApplied: getActiveRules(settings),
+    verification: result.verification
+  };
+  const history = await pushHistory(historyItem);
+  return {
+    ...result,
+    history
+  };
+}
+
 async function handleGlobalProofread() {
+  // 校正中にショートカットが再度押されても多重実行しない
+  if (globalProofreadRunning) {
+    showWindow();
+    return;
+  }
+
+  globalProofreadRunning = true;
   try {
-    const settings = await getSettings();
     const selectedText = await readSelectedText();
 
-    if (!selectedText) {
+    if (!selectedText.trim()) {
       showWindow();
-      void mainWindow?.webContents.send('proofread:status', {
+      mainWindow?.webContents.send('proofread:status', {
         kind: 'error',
         message: '選択テキストを取得できませんでした。macOSのアクセシビリティ許可を確認してください。'
       });
@@ -186,36 +213,25 @@ async function handleGlobalProofread() {
     }
 
     showWindow();
-    void mainWindow?.webContents.send('proofread:captured', {
+    mainWindow?.webContents.send('proofread:captured', {
       source: selectedText
     });
 
-    const result = await proofreadText(selectedText, settings);
+    const result = await proofreadAndRecord(selectedText);
 
-    const historyItem: ProofreadHistoryItem = {
-      id: randomUUID(),
-      createdAt: new Date().toISOString(),
-      source: selectedText,
-      output: result.output,
-      modelName: result.modelName,
-      rulesApplied: getActiveRules(settings),
-      verification: result.verification
-    };
-
-    const history = await pushHistory(historyItem);
-
-    void mainWindow?.webContents.send('proofread:completed', {
+    mainWindow?.webContents.send('proofread:completed', {
       ...result,
-      source: selectedText,
-      history
+      source: selectedText
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : '不明なエラーが発生しました。';
     showWindow();
-    void mainWindow?.webContents.send('proofread:status', {
+    mainWindow?.webContents.send('proofread:status', {
       kind: 'error',
       message
     });
+  } finally {
+    globalProofreadRunning = false;
   }
 }
 
@@ -227,26 +243,8 @@ function registerIpcHandlers() {
     return saved;
   });
   ipcMain.handle('history:list', async () => getHistory());
-  ipcMain.handle('proofread:run', async (_, source: string, incomingSettings?: AppSettings) => {
-    const settings = (incomingSettings?.ruleSets?.length && incomingSettings?.models?.length)
-      ? incomingSettings
-      : await getSettings();
-    const result = await proofreadText(source, settings);
-    const historyItem: ProofreadHistoryItem = {
-      id: randomUUID(),
-      createdAt: new Date().toISOString(),
-      source,
-      output: result.output,
-      modelName: result.modelName,
-      rulesApplied: getActiveRules(settings),
-      verification: result.verification
-    };
-    const history = await pushHistory(historyItem);
-    return {
-      ...result,
-      history
-    };
-  });
+  // 設定は常に保存済みのものを使い、レンダラーから渡された値は信用しない
+  ipcMain.handle('proofread:run', async (_, source: string) => proofreadAndRecord(source));
   ipcMain.handle('selection:proofread', async () => {
     await handleGlobalProofread();
   });
@@ -281,6 +279,11 @@ app.whenReady().then(async () => {
     }
     showWindow();
   });
+});
+
+app.on('before-quit', () => {
+  // Command+Q やシステム終了時も close でのキャンセルをさせない
+  isQuitting = true;
 });
 
 app.on('second-instance', () => {

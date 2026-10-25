@@ -9,7 +9,8 @@
     "dev": "bun scripts/dev.mjs",
     "build": "bun run typecheck && electron-vite build && electron-builder",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "bun test"
   },
   "build": {
     "appId": "net.devneko.shallowtwrite",
@@ -38,11 +39,12 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@swc/core": "^1.11.24",
+    "@types/bun": "^1.4.3",
     "@types/node": "^24.0.10",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
-    "@swc/core": "^1.11.24",
     "electron": "^37.2.1",
     "electron-builder": "^25.1.8",
     "electron-vite": "^3.1.0",

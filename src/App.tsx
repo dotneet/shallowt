@@ -5,6 +5,7 @@ import type {
   AppSettings,
   ModelProfile,
   ProofreadHistoryItem,
+  Provider,
   RuleSet,
   ShortcutConfig,
   VerificationIssue
@@ -303,11 +304,13 @@ export function App() {
   const [ruleSetSaved, setRuleSetSaved] = useState(false);
   const [recordingShortcut, setRecordingShortcut] = useState<keyof ShortcutConfig | null>(null);
   const [shortcutNotice, setShortcutNotice] = useState('');
+  const [draftProviderApiKeys, setDraftProviderApiKeys] = useState<AppSettings['providerApiKeys']>({});
   const ruleSetDialogRef = useRef<HTMLDialogElement>(null);
   const modelDialogRef = useRef<HTMLDialogElement>(null);
   const shortcutDialogRef = useRef<HTMLDialogElement>(null);
   const historyDialogRef = useRef<HTMLDialogElement>(null);
   const apiKeyDialogRef = useRef<HTMLDialogElement>(null);
+  const committedProviderApiKeysRef = useRef<AppSettings['providerApiKeys']>({});
   const pastedRef = useRef(false);
 
   useEffect(() => {
@@ -423,7 +426,7 @@ export function App() {
     setBusy(true);
     setStatus('本文を校正しています...');
     try {
-      const response = await api.runProofread(textToProofread, currentSettings);
+      const response = await api.runProofread(textToProofread);
       setResult(response.output);
       setVerification(normalizeVerificationList(response.verification));
       setPromptPreview(response.promptPreview);
@@ -486,6 +489,32 @@ export function App() {
     historyDialogRef.current?.close();
   }
 
+  function openApiKeyDialog() {
+    committedProviderApiKeysRef.current = currentSettings.providerApiKeys;
+    setDraftProviderApiKeys(currentSettings.providerApiKeys);
+    apiKeyDialogRef.current?.showModal();
+  }
+
+  function updateDraftProviderApiKey(provider: Provider, value: string) {
+    setDraftProviderApiKeys((current) => ({ ...current, [provider]: value }));
+  }
+
+  async function commitProviderApiKeys() {
+    const committed = committedProviderApiKeysRef.current;
+    const providers = new Set([...Object.keys(committed), ...Object.keys(draftProviderApiKeys)] as Provider[]);
+    const changed = [...providers].some((provider) => (committed[provider] ?? '') !== (draftProviderApiKeys[provider] ?? ''));
+    if (!changed) return;
+
+    // blur と close が続けて発火しても二重保存しないよう、保存前に確定扱いにする
+    committedProviderApiKeysRef.current = draftProviderApiKeys;
+    try {
+      await saveCurrentSettings({ ...currentSettings, providerApiKeys: draftProviderApiKeys });
+    } catch (error) {
+      committedProviderApiKeysRef.current = committed;
+      setStatus(error instanceof Error ? error.message : 'API キーの保存に失敗しました。');
+    }
+  }
+
   function startShortcutRecording(target: keyof ShortcutConfig) {
     setRecordingShortcut(target);
     setShortcutNotice('');
@@ -520,6 +549,7 @@ export function App() {
     setSource(item.source);
     setResult(item.output);
     setVerification(item.verification);
+    setPromptPreview('');
     setStatus(`${item.modelName} の履歴を読み込みました。`);
     closeHistoryDialog();
   }
@@ -761,14 +791,18 @@ export function App() {
           <div className="sidebarSection">
             <div className="sidebarSectionHeader">
               <span>API キー</span>
-              <button className="linkButton" onClick={() => apiKeyDialogRef.current?.showModal()}>編集</button>
+              <button className="linkButton" onClick={openApiKeyDialog}>編集</button>
             </div>
             <div className="apiKeyStatusList">
-              {(['openai-compatible', 'anthropic'] as const).map((provider) => {
-                const hasKey = !!currentSettings.providerApiKeys[provider];
+              {([
+                { id: 'openai-compatible', label: 'OpenAI' },
+                { id: 'anthropic', label: 'Anthropic' },
+                { id: 'xai', label: 'xAI' }
+              ] as const).map(({ id, label }) => {
+                const hasKey = !!currentSettings.providerApiKeys[id];
                 return (
-                  <span key={provider} className={`apiKeyStatus${hasKey ? ' set' : ''}`}>
-                    {provider === 'openai-compatible' ? 'OpenAI' : 'Anthropic'}
+                  <span key={id} className={`apiKeyStatus${hasKey ? ' set' : ''}`}>
+                    {label}
                     {hasKey ? ' ✓' : ' 未設定'}
                   </span>
                 );
@@ -1015,7 +1049,12 @@ export function App() {
                   <div className="dialogCard dialogCard--muted">
                     <div className="modelInfoGrid">
                       <span className="modelInfoLabel">Provider</span>
-                      <span>{draftModel.provider === 'openai-compatible' ? 'OpenAI compatible' : draftModel.provider === 'anthropic' ? 'Anthropic' : 'Ollama'}</span>
+                      <span>{
+                        draftModel.provider === 'openai-compatible' ? 'OpenAI compatible'
+                          : draftModel.provider === 'anthropic' ? 'Anthropic'
+                            : draftModel.provider === 'xai' ? 'xAI'
+                              : 'Ollama'
+                      }</span>
                       <span className="modelInfoLabel">Model ID</span>
                       <span>{draftModel.model}</span>
                       <span className="modelInfoLabel">Endpoint</span>
@@ -1037,6 +1076,7 @@ export function App() {
                       <select value={draftModel.provider} onChange={(e) => setDraftModel({ ...draftModel, provider: e.target.value as ModelProfile['provider'] })}>
                         <option value="openai-compatible">OpenAI compatible</option>
                         <option value="anthropic">Anthropic</option>
+                        <option value="xai">xAI</option>
                         <option value="ollama">Ollama</option>
                       </select>
                     </label>
@@ -1107,7 +1147,11 @@ export function App() {
       </dialog>
 
       {/* API キー設定ダイアログ */}
-      <dialog ref={apiKeyDialogRef} className="kDialog kDialog--narrow">
+      <dialog
+        ref={apiKeyDialogRef}
+        className="kDialog kDialog--narrow"
+        onClose={() => void commitProviderApiKeys()}
+      >
         <div className="dialogHeader">
           <h2>API キー設定</h2>
           <button className="dialogClose" onClick={() => apiKeyDialogRef.current?.close()}>✕</button>
@@ -1120,18 +1164,16 @@ export function App() {
           <div className="apiKeyProviderGroup">
             <div className="apiKeyProviderHeader">
               <span className="apiKeyProviderName">OpenAI compatible</span>
-              <span className="apiKeyProviderDesc">GPT-5.4 シリーズなど</span>
+              <span className="apiKeyProviderDesc">GPT-6 シリーズなど</span>
             </div>
             <label className="field">
               <span>API キー</span>
               <input
                 type="password"
                 placeholder="sk-..."
-                value={currentSettings.providerApiKeys['openai-compatible'] ?? ''}
-                onChange={(e) => void saveCurrentSettings({
-                  ...currentSettings,
-                  providerApiKeys: { ...currentSettings.providerApiKeys, 'openai-compatible': e.target.value }
-                })}
+                value={draftProviderApiKeys['openai-compatible'] ?? ''}
+                onChange={(e) => updateDraftProviderApiKey('openai-compatible', e.target.value)}
+                onBlur={() => void commitProviderApiKeys()}
               />
             </label>
           </div>
@@ -1146,11 +1188,26 @@ export function App() {
               <input
                 type="password"
                 placeholder="sk-ant-..."
-                value={currentSettings.providerApiKeys['anthropic'] ?? ''}
-                onChange={(e) => void saveCurrentSettings({
-                  ...currentSettings,
-                  providerApiKeys: { ...currentSettings.providerApiKeys, anthropic: e.target.value }
-                })}
+                value={draftProviderApiKeys['anthropic'] ?? ''}
+                onChange={(e) => updateDraftProviderApiKey('anthropic', e.target.value)}
+                onBlur={() => void commitProviderApiKeys()}
+              />
+            </label>
+          </div>
+
+          <div className="apiKeyProviderGroup">
+            <div className="apiKeyProviderHeader">
+              <span className="apiKeyProviderName">xAI</span>
+              <span className="apiKeyProviderDesc">Grok シリーズ</span>
+            </div>
+            <label className="field">
+              <span>API キー</span>
+              <input
+                type="password"
+                placeholder="xai-..."
+                value={draftProviderApiKeys.xai ?? ''}
+                onChange={(e) => updateDraftProviderApiKey('xai', e.target.value)}
+                onBlur={() => void commitProviderApiKeys()}
               />
             </label>
           </div>
@@ -1164,7 +1221,7 @@ export function App() {
           </div>
         </div>
         <div className="dialogFooter">
-          <p className="ruleSetEditorHint" style={{ margin: 0 }}>変更は即時保存されます。</p>
+          <p className="ruleSetEditorHint" style={{ margin: 0 }}>入力欄を離れるか、閉じると保存されます。</p>
           <div style={{ flex: 1 }} />
           <button onClick={() => apiKeyDialogRef.current?.close()}>閉じる</button>
         </div>

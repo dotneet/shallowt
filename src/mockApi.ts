@@ -90,7 +90,7 @@ export const mockApi = {
     return structuredClone(inMemorySettings);
   },
   listHistory: async () => structuredClone(inMemoryHistory),
-  runProofread: async (_source: string, _settings: AppSettings) => ({
+  runProofread: async (_source: string) => ({
     ...structuredClone(sampleResponse),
     history: structuredClone(inMemoryHistory)
   }),

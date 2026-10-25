@@ -1,4 +1,4 @@
-export type Provider = 'openai-compatible' | 'anthropic' | 'ollama';
+export type Provider = 'openai-compatible' | 'anthropic' | 'xai' | 'ollama';
 
 export type ModelProfile = {
   id: string;

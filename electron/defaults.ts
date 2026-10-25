@@ -22,7 +22,7 @@ export const DEFAULT_RULE_SETS: RuleSet[] = [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  activeModelId: 'gpt-5.4-mini',
+  activeModelId: 'gpt-6-luna',
   activeRuleSetIds: ['standard'],
   autoPasteResult: false,
   shortcut: {
@@ -35,51 +35,59 @@ export const DEFAULT_SETTINGS: AppSettings = {
     'あなたは日本語と英語の文章を整える校正アシスタントです。文意を保持しながら、語調・文法・可読性・一貫性を改善してください。',
   models: [
     {
-      id: 'gpt-5.4',
-      name: 'GPT-5.4',
+      id: 'gpt-6-astra',
+      name: 'GPT-6 Astra',
       provider: 'openai-compatible',
-      model: 'gpt-5.4',
+      model: 'gpt-6-astra',
       endpoint: 'https://api.openai.com/v1/chat/completions',
       builtin: true
     },
     {
-      id: 'gpt-5.4-mini',
-      name: 'GPT-5.4 mini',
+      id: 'gpt-6.1-sol',
+      name: 'GPT-6.1 Sol',
       provider: 'openai-compatible',
-      model: 'gpt-5.4-mini',
+      model: 'gpt-6.1-sol',
       endpoint: 'https://api.openai.com/v1/chat/completions',
       builtin: true
     },
     {
-      id: 'gpt-5.4-nano',
-      name: 'GPT-5.4 nano',
+      id: 'gpt-6-luna',
+      name: 'GPT-6 Luna',
       provider: 'openai-compatible',
-      model: 'gpt-5.4-nano',
+      model: 'gpt-6-luna',
       endpoint: 'https://api.openai.com/v1/chat/completions',
       builtin: true
     },
     {
-      id: 'claude-opus-4-6',
-      name: 'Claude Opus 4.6',
+      id: 'claude-opus-5-5',
+      name: 'Claude Opus 5.5',
       provider: 'anthropic',
-      model: 'claude-opus-4-6',
+      model: 'claude-opus-5-5',
       endpoint: 'https://api.anthropic.com/v1/messages',
       builtin: true
     },
     {
-      id: 'claude-sonnet-4-6',
-      name: 'Claude Sonnet 4.6',
+      id: 'claude-sonnet-5-5',
+      name: 'Claude Sonnet 5.5',
       provider: 'anthropic',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5-5',
       endpoint: 'https://api.anthropic.com/v1/messages',
       builtin: true
     },
     {
-      id: 'claude-haiku-4-5',
-      name: 'Claude Haiku 4.5',
+      id: 'claude-haiku-5-5',
+      name: 'Claude Haiku 5.5',
       provider: 'anthropic',
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-5-5',
       endpoint: 'https://api.anthropic.com/v1/messages',
+      builtin: true
+    },
+    {
+      id: 'grok-4.7',
+      name: 'Grok 4.7',
+      provider: 'xai',
+      model: 'grok-4.7',
+      endpoint: 'https://api.x.ai/v1/chat/completions',
       builtin: true
     },
     {
