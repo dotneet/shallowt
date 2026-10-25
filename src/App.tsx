@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { buildDisplaySegments } from './diff';
 import { mockApi } from './mockApi';
 import type {
@@ -126,6 +126,7 @@ function getAcceleratorKeyFromEvent(event: KeyboardEvent) {
 function formatShortcutForDisplay(accelerator: string) {
   const labelMap: Record<string, string> = {
     Command: isApplePlatform ? 'Command' : 'Super',
+    CommandOrControl: isApplePlatform ? 'Command' : 'Control',
     Control: 'Control',
     Alt: isApplePlatform ? 'Option' : 'Alt',
     Shift: 'Shift',
@@ -152,6 +153,94 @@ function formatShortcutForDisplay(accelerator: string) {
     .filter(Boolean)
     .map((segment) => labelMap[segment] ?? segment)
     .join(' + ');
+}
+
+/** ステータスバーやヒント用の短い表記 (例: ⌘⇧K) */
+function formatShortcutCompact(accelerator: string) {
+  if (!isApplePlatform) {
+    return formatShortcutForDisplay(accelerator).replaceAll(' + ', '+');
+  }
+
+  const symbolMap: Record<string, string> = {
+    Command: '⌘',
+    CommandOrControl: '⌘',
+    Control: '⌃',
+    Alt: '⌥',
+    Shift: '⇧',
+    Return: '↩',
+    Escape: '⎋',
+    Space: '␣'
+  };
+
+  return accelerator
+    .split('+')
+    .filter(Boolean)
+    .map((segment) => symbolMap[segment] ?? formatShortcutForDisplay(segment))
+    .join('');
+}
+
+type IconName = 'history' | 'settings' | 'copy' | 'check' | 'edit' | 'chevron' | 'spark';
+
+/** 装飾ではなく操作の手がかりとして使う最小限のアイコン */
+function Icon({ name }: { name: IconName }) {
+  const paths: Record<IconName, ReactNode> = {
+    history: (
+      <>
+        <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
+        <path d="M3.5 4.5v4h4" />
+        <path d="M12 7.5V12l3 2" />
+      </>
+    ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+      </>
+    ),
+    copy: (
+      <>
+        <rect x="9" y="9" width="11" height="11" rx="2.5" />
+        <path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15" />
+      </>
+    ),
+    check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+    edit: (
+      <>
+        <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" />
+        <path d="M13.5 6.5l4 4" />
+      </>
+    ),
+    chevron: <path d="M7 10l5 5 5-5" />,
+    spark: (
+      <path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9L12 3.5zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z" />
+    )
+  };
+
+  return (
+    <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {paths[name]}
+    </svg>
+  );
+}
+
+/** ヘッダーのブランドマーク */
+function BrandMark() {
+  return (
+    <svg className="brandMark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="brandFlame" x1="0" y1="1" x2="0.4" y2="0">
+          <stop offset="0" stopColor="#505bd5" />
+          <stop offset="0.55" stopColor="#5fa8ec" />
+          <stop offset="1" stopColor="#92e7eb" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M16 2.5c1.2 4.3 6.8 7.4 7.6 13.2.8 5.9-3.4 11.3-7.6 11.8-4.6.5-9-3.1-9.1-8.6-.1-3.5 1.9-6 3.6-7.6-.1 2.3.6 4.3 2.4 5.3-.6-5.4 1.6-9.9 3.1-14.1z"
+        fill="url(#brandFlame)"
+      />
+      <path d="M16.2 16.5c2.4 1.9 3.2 4.2 2.6 6.2-.5 1.9-2.1 2.9-3.4 2.8-1.7-.1-3-1.6-2.8-3.6.2-2 1.9-3.2 3.6-5.4z" fill="#e565d4" />
+    </svg>
+  );
 }
 
 type ShortcutCaptureResult =
@@ -308,6 +397,9 @@ export function App() {
   const [recordingShortcut, setRecordingShortcut] = useState<keyof ShortcutConfig | null>(null);
   const [shortcutNotice, setShortcutNotice] = useState('');
   const [draftProviderApiKeys, setDraftProviderApiKeys] = useState<AppSettings['providerApiKeys']>({});
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [resultView, setResultView] = useState<'diff' | 'clean'>('diff');
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
   const ruleSetDialogRef = useRef<HTMLDialogElement>(null);
   const modelDialogRef = useRef<HTMLDialogElement>(null);
   const shortcutDialogRef = useRef<HTMLDialogElement>(null);
@@ -329,7 +421,7 @@ export function App() {
       const initialRuleSet = loadedSettings.ruleSets[0] ?? emptyRuleSet;
       setDraftRuleSet(initialRuleSet);
       setDraftRuleText(initialRuleSet.rules.join('\n'));
-      setStatus('待機中。ショートカットまたは左上の操作から校正できます。');
+      setStatus('準備完了');
     };
 
     void boot();
@@ -407,6 +499,30 @@ export function App() {
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [recordingShortcut]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!settingsMenuRef.current?.contains(event.target as Node)) {
+        setSettingsMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSettingsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [settingsMenuOpen]);
 
   useEffect(() => {
     if (!recordingShortcut) {
@@ -630,29 +746,122 @@ export function App() {
     setDraftRuleText(nextDraft.rules.join('\n'));
   }
 
+  function openModelDialog() {
+    setDraftModel(activeModel ?? emptyModel);
+    modelDialogRef.current?.showModal();
+  }
+
+  function openFromSettingsMenu(open: () => void) {
+    setSettingsMenuOpen(false);
+    open();
+  }
+
+  const statusActionVisible = statusAction?.message === status;
+  const hasResult = displaySegments.length > 0;
+  const issueCount = safeVerification.filter((issue) => issue.severity === 'issue').length;
+  const missingApiKey = activeModel && activeModel.provider !== 'ollama' && !activeModel.apiKey && !currentSettings.providerApiKeys[activeModel.provider];
+
   return (
-    <main className="shell">
-      <div className={`statusLine${statusAction?.message === status ? ' hasAction' : ''}`}>
-        <span className={`statusDot ${statusTone}`} />
-        <span className="subtle">{status}</span>
-        {statusAction?.message === status && statusAction.action === 'open-accessibility-settings' && (
-          <button className="linkButton statusActionButton" onClick={() => void api.openAccessibilitySettings()}>
-            システム設定を開く
+    <main className={`shell${busy ? ' isBusy' : ''}`}>
+      <header className="topBar">
+        <div className="brand">
+          <BrandMark />
+          <span className="brandName">ShallowT <em>Write</em></span>
+        </div>
+
+        <div className="toolbar" role="toolbar" aria-label="校正の条件">
+          <label className="modelPicker">
+            <span className="visuallyHidden">モデル</span>
+            <select
+              value={currentSettings.activeModelId}
+              onChange={(event) =>
+                void saveCurrentSettings({ ...currentSettings, activeModelId: event.target.value })
+              }
+            >
+              {currentSettings.models.map((model) => (
+                <option value={model.id} key={model.id}>{model.name}</option>
+              ))}
+            </select>
+            <Icon name="chevron" />
+          </label>
+
+          <div className="ruleChips" role="group" aria-label="ルールセット（クリックで切り替え）">
+            {currentSettings.ruleSets.map((ruleSet) => {
+              const isActive = currentSettings.activeRuleSetIds.includes(ruleSet.id);
+              return (
+                <button
+                  key={ruleSet.id}
+                  className={`ruleChip${isActive ? ' active' : ''}`}
+                  aria-pressed={isActive}
+                  title={ruleSet.rules.join('\n')}
+                  onClick={() => void toggleRuleSet(ruleSet.id, !isActive)}
+                >
+                  {ruleSet.name}
+                </button>
+              );
+            })}
+            <button className="iconButton" title="ルールセットを編集" aria-label="ルールセットを編集" onClick={() => ruleSetDialogRef.current?.showModal()}>
+              <Icon name="edit" />
+            </button>
+          </div>
+        </div>
+
+        <div className="topActions">
+          <button className="ghostButton" aria-label={`履歴（${history.length} 件）`} onClick={openHistoryDialog}>
+            <Icon name="history" />
+            <span>履歴</span>
+            <span className="countBadge">{history.length}</span>
           </button>
-        )}
-      </div>
+          <div className="menuAnchor" ref={settingsMenuRef}>
+            <button
+              className={`ghostButton${missingApiKey ? ' needsAttention' : ''}`}
+              aria-label={missingApiKey ? '設定（API キーが未設定です）' : '設定'}
+              aria-haspopup="menu"
+              aria-expanded={settingsMenuOpen}
+              onClick={() => setSettingsMenuOpen((open) => !open)}
+            >
+              <Icon name="settings" />
+              <span>設定</span>
+            </button>
+            {settingsMenuOpen && (
+              <div className="menu" role="menu">
+                <button role="menuitem" onClick={() => openFromSettingsMenu(openModelDialog)}>
+                  <span>モデル</span>
+                  <small>{activeModel?.name}</small>
+                </button>
+                <button role="menuitem" onClick={() => openFromSettingsMenu(() => ruleSetDialogRef.current?.showModal())}>
+                  <span>ルールセット</span>
+                  <small>{activeRuleSets.map((ruleSet) => ruleSet.name).join('・')}</small>
+                </button>
+                <button role="menuitem" onClick={() => openFromSettingsMenu(openShortcutDialog)}>
+                  <span>ショートカット</span>
+                  <small>{formatShortcutCompact(currentSettings.shortcut.proofread)} / {formatShortcutCompact(currentSettings.shortcut.reopen)}</small>
+                </button>
+                <button role="menuitem" onClick={() => openFromSettingsMenu(openApiKeyDialog)}>
+                  <span>API キー</span>
+                  <small className={missingApiKey ? 'warn' : ''}>
+                    {(['openai-compatible', 'anthropic', 'xai'] as const)
+                      .filter((provider) => currentSettings.providerApiKeys[provider])
+                      .map((provider) => ({ 'openai-compatible': 'OpenAI', anthropic: 'Anthropic', xai: 'xAI' })[provider])
+                      .join('・') || '未設定'}
+                  </small>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
 
       <section className="workspace">
-        <article className="pane editorPane">
-          <div className="paneHeader">
-            <h2>入力エディタ</h2>
-            <button className="accent paneActionButton" onClick={() => void runManualProofread()} disabled={busy}>
-              校正
-            </button>
+        <article className="card sourceCard">
+          <div className="cardHeader">
+            <h2>原文</h2>
+            <span className="meta">{source.length.toLocaleString()} 文字</span>
           </div>
           <textarea
             className="editor"
             value={source}
+            aria-label="原文"
             onPaste={(event) => {
               const pasted = event.clipboardData.getData('text');
               if (pasted.length > 10) pastedRef.current = true;
@@ -665,162 +874,155 @@ export function App() {
                 void runManualProofread(newValue);
               }
             }}
-            placeholder="ここに校正したい文章を入力するか、他アプリで文章を選択してショートカットを押してください。"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && !busy) {
+                event.preventDefault();
+                void runManualProofread();
+              }
+            }}
+            placeholder="校正したい文章を入力・貼り付け"
             disabled={busy}
           />
-        </article>
-
-        <article className="pane resultPane">
-          <div className="paneHeader">
-            <h2>校正結果</h2>
-            <span style={{ color: 'var(--muted)', fontSize: '0.85rem', flex: 1 }}>
-              {busy ? '校正中...' : safeVerification.length ? `${safeVerification.length} 件の確認` : ''}
+          <div className="cardFooter">
+            <span className="hint">
+              <kbd>{isApplePlatform ? '⌘' : 'Ctrl'}</kbd><kbd>↩</kbd> で校正・貼り付けると自動で校正
             </span>
-            <button
-              className={`copyButton${copied ? ' copied' : ''}`}
-              onClick={() => void copyResult()}
-              disabled={!result || busy}
-            >
-              {copied ? 'コピー済み' : 'コピー'}
+            <button className="primaryButton" onClick={() => void runManualProofread()} disabled={busy || !source.trim()}>
+              <Icon name="spark" />
+              {busy ? '校正中…' : '校正する'}
             </button>
           </div>
-          <div className="resultCanvas">
-            {displaySegments.length ? (
-              displaySegments
-                .filter((segment) => segment.kind !== 'deleted')
-                .map((segment) => (
-                  <span
-                    className={`diffSegment diff-${segment.kind}`}
-                    key={segment.id}
-                    data-original={segment.kind === 'replaced' ? (segment.originalText ?? undefined) : undefined}
-                  >
-                    {segment.text}
-                  </span>
-                ))
+        </article>
+
+        <article className={`card resultCard${busy ? ' busy' : ''}`} aria-busy={busy}>
+          <div className="cardHeader">
+            <h2>校正結果</h2>
+            {hasResult && <span className="meta">{result.length.toLocaleString()} 文字</span>}
+            <div className="cardHeaderActions">
+              <div className="segmented" role="radiogroup" aria-label="表示">
+                <button role="radio" aria-checked={resultView === 'diff'} className={resultView === 'diff' ? 'active' : ''} onClick={() => setResultView('diff')}>
+                  差分
+                </button>
+                <button role="radio" aria-checked={resultView === 'clean'} className={resultView === 'clean' ? 'active' : ''} onClick={() => setResultView('clean')}>
+                  仕上がり
+                </button>
+              </div>
+              <button
+                className={`ghostButton copyButton${copied ? ' copied' : ''}`}
+                aria-label={copied ? 'コピーしました' : '校正結果をコピー'}
+                onClick={() => void copyResult()}
+                disabled={!result || busy}
+              >
+                <Icon name={copied ? 'check' : 'copy'} />
+                <span>{copied ? 'コピーしました' : 'コピー'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className={`resultCanvas view-${resultView}`}>
+            {busy && !hasResult ? (
+              <div className="skeleton" aria-hidden="true">
+                <span /><span /><span />
+              </div>
+            ) : hasResult ? (
+              resultView === 'clean' ? (
+                <p className="cleanText">{result}</p>
+              ) : (
+                <p className="diffText">
+                  {displaySegments.map((segment) => {
+                    if (segment.kind === 'deleted') {
+                      return <del className="diffSegment diff-deleted" key={segment.id} title="削除">{segment.originalText}</del>;
+                    }
+                    if (segment.kind === 'replaced') {
+                      return (
+                        <span className="diffSegment diff-replaced" key={segment.id}>
+                          <del title="変更前">{segment.originalText}</del>
+                          <ins title="変更後">{segment.text}</ins>
+                        </span>
+                      );
+                    }
+                    if (segment.kind === 'added') {
+                      return <ins className="diffSegment diff-added" key={segment.id} title="追加">{segment.text}</ins>;
+                    }
+                    return <span key={segment.id}>{segment.text}</span>;
+                  })}
+                </p>
+              )
             ) : (
-              <p className="emptyState">校正結果がここに表示されます。</p>
+              <div className="emptyState">
+                <p className="emptyTitle">ここに校正結果が表示されます</p>
+                <p>
+                  原文を入力して <kbd>{isApplePlatform ? '⌘' : 'Ctrl'}</kbd><kbd>↩</kbd>、
+                  または他のアプリで文章を選んで <kbd>{formatShortcutCompact(currentSettings.shortcut.proofread)}</kbd>
+                </p>
+              </div>
             )}
           </div>
-          <section className="verificationPanel">
-            <div className="subPanelHeader">
-              <h3>内容検証</h3>
-              <span>{safeVerification.length ? '要確認あり' : '問題なし'}</span>
+
+          {hasResult && resultView === 'diff' && (
+            <div className="diffLegend" aria-hidden="true">
+              <span className="legend-added">追加</span>
+              <span className="legend-replaced">変更</span>
+              <span className="legend-deleted">削除</span>
+            </div>
+          )}
+
+          <section className={`checkPanel${safeVerification.length ? ' hasIssues' : ''}`}>
+            <div className="checkHeader">
+              <h3>内容チェック</h3>
+              {hasResult && (
+                safeVerification.length ? (
+                  <span className="checkBadge attention">{safeVerification.length} 件{issueCount ? `（要修正 ${issueCount}）` : ''}</span>
+                ) : (
+                  <span className="checkBadge clear">問題なし</span>
+                )
+              )}
             </div>
             {safeVerification.length ? (
-              <div className="verificationList">
+              <ul className="checkList">
                 {safeVerification.map((issue) => (
-                  <article className={`verificationItem verification-${issue.severity}`} key={issue.id}>
-                    <strong>{issue.title}</strong>
-                    <p>{issue.detail}</p>
-                    {issue.sourceQuote ? <blockquote>{issue.sourceQuote}</blockquote> : null}
-                  </article>
+                  <li className={`checkItem severity-${issue.severity}`} key={issue.id}>
+                    <span className="severityTag">{issue.severity === 'issue' ? '要修正' : '注意'}</span>
+                    <div>
+                      <strong>{issue.title}</strong>
+                      <p>{issue.detail}</p>
+                      {issue.sourceQuote ? <blockquote>{issue.sourceQuote}</blockquote> : null}
+                    </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : (
-              <p className="verificationClear">
-                明らかな内容矛盾や事実誤りは検出されませんでした。
+              <p className="checkEmpty">
+                {hasResult ? '明らかな矛盾や事実の誤りは見つかりませんでした。' : '校正と同時に、矛盾や事実の誤りもチェックします。'}
               </p>
             )}
           </section>
-          <details className="promptBox">
-            <summary>送信プロンプトを確認</summary>
-            <pre>{promptPreview || 'まだ校正していません。'}</pre>
-          </details>
-        </article>
 
-        <article className="pane settingsPane">
-          <div className="paneHeader">
-            <h2>実行条件</h2>
-          </div>
-
-          <label className="field">
-            <span>モデル</span>
-            <select
-              value={currentSettings.activeModelId}
-              onChange={(event) =>
-                void saveCurrentSettings({ ...currentSettings, activeModelId: event.target.value })
-              }
-            >
-              {currentSettings.models.map((model) => (
-                <option value={model.id} key={model.id}>{model.name}</option>
-              ))}
-            </select>
-          </label>
-
-          <div className="sidebarSection">
-            <div className="sidebarSectionHeader">
-              <span>ルールセット</span>
-              <button className="linkButton" onClick={() => ruleSetDialogRef.current?.showModal()}>編集</button>
-            </div>
-            <div className="chipRow">
-              {activeRuleSets.map((rs) => (
-                <span className="chip" key={rs.id}>{rs.name}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="sidebarSection">
-            <div className="sidebarSectionHeader">
-              <span>モデル設定</span>
-              <button className="linkButton" onClick={() => {
-                setDraftModel(currentSettings.models.find((m) => m.id === currentSettings.activeModelId) ?? currentSettings.models[0] ?? emptyModel);
-                modelDialogRef.current?.showModal();
-              }}>編集</button>
-            </div>
-            <span className="sidebarMeta">{activeModel?.name}</span>
-          </div>
-
-          <div className="sidebarSection">
-            <div className="sidebarSectionHeader">
-              <span>ショートカット</span>
-              <button className="linkButton" onClick={openShortcutDialog}>ショートカットの設定</button>
-            </div>
-            <div className="shortcutSummaryList">
-              <div className="shortcutSummaryItem">
-                <strong>{shortcutFieldMeta.proofread.title}</strong>
-                <code>{formatShortcutForDisplay(currentSettings.shortcut.proofread)}</code>
-              </div>
-              <div className="shortcutSummaryItem">
-                <strong>{shortcutFieldMeta.reopen.title}</strong>
-                <code>{formatShortcutForDisplay(currentSettings.shortcut.reopen)}</code>
-              </div>
-            </div>
-          </div>
-
-          <div className="sidebarSection">
-            <div className="sidebarSectionHeader">
-              <span>履歴</span>
-            </div>
-            <button className="historyTrigger" onClick={openHistoryDialog}>
-              <strong>履歴を開く</strong>
-              <span>{history.length} 件</span>
-            </button>
-          </div>
-
-          <div className="sidebarSection">
-            <div className="sidebarSectionHeader">
-              <span>API キー</span>
-              <button className="linkButton" onClick={openApiKeyDialog}>編集</button>
-            </div>
-            <div className="apiKeyStatusList">
-              {([
-                { id: 'openai-compatible', label: 'OpenAI' },
-                { id: 'anthropic', label: 'Anthropic' },
-                { id: 'xai', label: 'xAI' }
-              ] as const).map(({ id, label }) => {
-                const hasKey = !!currentSettings.providerApiKeys[id];
-                return (
-                  <span key={id} className={`apiKeyStatus${hasKey ? ' set' : ''}`}>
-                    {label}
-                    {hasKey ? ' ✓' : ' 未設定'}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-
+          {promptPreview && (
+            <details className="promptBox">
+              <summary>送信したプロンプト</summary>
+              <pre>{promptPreview}</pre>
+            </details>
+          )}
         </article>
       </section>
+
+      <footer className="statusBar" role="status" aria-live="polite">
+        <span className={`statusDot ${statusTone}`} />
+        <span className="statusText">{status}</span>
+        {statusActionVisible && statusAction.action === 'open-accessibility-settings' && (
+          <button className="statusActionButton" onClick={() => void api.openAccessibilitySettings()}>
+            システム設定を開く
+          </button>
+        )}
+        <span className="statusSpacer" />
+        <span className="statusShortcut">
+          <kbd>{formatShortcutCompact(currentSettings.shortcut.proofread)}</kbd> 選択テキストを校正
+        </span>
+        <span className="statusShortcut">
+          <kbd>{formatShortcutCompact(currentSettings.shortcut.reopen)}</kbd> 再表示
+        </span>
+      </footer>
 
       <dialog
         ref={shortcutDialogRef}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, screen, shell } from 'electron';
+import { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeImage, nativeTheme, screen, shell } from 'electron';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { getActiveRules } from './rules';
@@ -70,13 +70,14 @@ function showWindow() {
 
 async function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1520,
-    height: 960,
-    minWidth: 1180,
-    minHeight: 720,
+    width: 1280,
+    height: 820,
+    minWidth: 860,
+    minHeight: 600,
     center: true,
     show: true,
-    backgroundColor: '#eadfcd',
+    // 読み込み前のちらつきを抑えるため、画面の背景色と合わせる
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0c0d22' : '#f2f3fb',
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.mjs'),
       sandbox: false
